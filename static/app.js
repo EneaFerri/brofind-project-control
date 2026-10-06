@@ -1,4 +1,4 @@
-/* Brofind Project Cockpit — interazioni dell'interfaccia V1. */
+/* Brofind Control Cockpit — interazioni dell'interfaccia V1. */
 
 // ------------------------------------------------------------------ feedback
 
