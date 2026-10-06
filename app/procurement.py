@@ -4,7 +4,6 @@ from collections import defaultdict
 
 from .config import settings
 
-
 # Master-data candidate. Logic is uniform; parameters calibrate expectations by type of VdA.
 VDA_NATURE = {
     "C000028": ("DIRECT_PURCHASE", "Acquisto diretto"),
@@ -78,8 +77,11 @@ def nature_for_vda(vda_code: str) -> dict:
 def requirements_by_vda(project) -> dict[str, list]:
     out = defaultdict(list)
     dismissed = {
-        d.decision_key for d in getattr(project, "cockpit_decisions", [])
-        if d.decision_type == "REQUIREMENT_DISPOSITION" and d.status == "ACTIVE" and (d.value or "").upper() == "DISMISSED"
+        d.decision_key
+        for d in getattr(project, "cockpit_decisions", [])
+        if d.decision_type == "REQUIREMENT_DISPOSITION"
+        and d.status == "ACTIVE"
+        and (d.value or "").upper() == "DISMISSED"
     }
     for req in getattr(project, "requirements", []) or []:
         if req.requirement_key in dismissed:
@@ -97,7 +99,11 @@ def analyze_procurement_row(row: dict, *, delivery_window: str = "UNKNOWN", requ
     closed = row.get("purchases_closed")
     near = delivery_window in ("NEAR", "IMMINENT")
     required = [r for r in requirements if r.status == "REQUIRED"]
-    to_verify = [r for r in requirements if r.status == "TO_VERIFY" and (r.source_kind != "ENGINEERING" or settings.technical_document_findings_enabled)]
+    to_verify = [
+        r
+        for r in requirements
+        if r.status == "TO_VERIFY" and (r.source_kind != "ENGINEERING" or settings.technical_document_findings_enabled)
+    ]
 
     # State answers what the current structured data tell us, without inventing missing procurement steps.
     if nature["key"] in ("INTERNAL", "RESERVE"):
@@ -124,22 +130,30 @@ def analyze_procurement_row(row: dict, *, delivery_window: str = "UNKNOWN", requ
         if state["key"] == "NOT_STARTED":
             if required and near:
                 risk = {
-                    "key": "HIGH", "tone": "amber", "label": "Verifica urgente",
+                    "key": "HIGH",
+                    "tone": "amber",
+                    "label": "Verifica urgente",
                     "reason": "Requisito confermato, nessun ordine identificato e commessa prossima alla consegna. Creare una verifica al PM/Acquisti.",
                 }
             elif near:
                 risk = {
-                    "key": "MEDIUM", "tone": "amber", "label": "Da verificare",
+                    "key": "MEDIUM",
+                    "tone": "amber",
+                    "label": "Da verificare",
                     "reason": "Budget presente ma nessun ordine identificato in una fase prossima alla consegna.",
                 }
             else:
                 risk = {
-                    "key": "LOW", "tone": "neutral", "label": "Monitorare",
+                    "key": "LOW",
+                    "tone": "neutral",
+                    "label": "Monitorare",
                     "reason": "Budget presente ma nessun ordine identificato; la fase temporale non rende ancora il segnale urgente.",
                 }
         elif state["key"] in ("OPEN", "IN_PROGRESS_UNKNOWN") and near:
             risk = {
-                "key": "MEDIUM", "tone": "amber", "label": "Chiusura da verificare",
+                "key": "MEDIUM",
+                "tone": "amber",
+                "label": "Chiusura da verificare",
                 "reason": "Acquisti non dichiarati conclusi in una fase prossima alla consegna.",
             }
         elif state["key"] == "CLOSED":
@@ -147,19 +161,25 @@ def analyze_procurement_row(row: dict, *, delivery_window: str = "UNKNOWN", requ
     elif nature["key"] == "MIXED_SERVICE" and budget > 0:
         if state["key"] == "PREPARATION_UNKNOWN" and near:
             risk = {
-                "key": "MEDIUM", "tone": "amber", "label": "Potenziale ritardo procurement",
+                "key": "MEDIUM",
+                "tone": "amber",
+                "label": "Potenziale ritardo procurement",
                 "reason": "Per servizi/montaggi l'ordine può essere tardivo; vicino alla consegna l'assenza di evidenza su RFQ, offerte e fornitore individuato può trasformarsi in ritardo.",
             }
         elif state["key"] == "PREPARATION_UNKNOWN":
             risk = {
-                "key": "LOW", "tone": "neutral", "label": "Preparazione da monitorare",
+                "key": "LOW",
+                "tone": "neutral",
+                "label": "Preparazione da monitorare",
                 "reason": "Ordine non ancora emesso: verificare in seguito RFQ/offerte secondo la fase attesa della categoria.",
             }
 
     # Pending engineering scope is evidence, not a deterministic missing-purchase statement.
     if to_verify and risk["key"] == "NONE":
         risk = {
-            "key": "INFO", "tone": "neutral", "label": "Scope da verificare",
+            "key": "INFO",
+            "tone": "neutral",
+            "label": "Scope da verificare",
             "reason": "Esiste un requisito engineering non ancora consolidato contrattualmente. Confermare o scartare prima di modificare lo stato acquisti.",
         }
 
@@ -209,11 +229,23 @@ def summarize_procurement(rows: list[dict], delivery_window: str, delivery_conte
         "medium_risk_count": len(medium),
         "watch_count": len(high) + len(medium),
         "not_started": [
-            {"vda_code": r["vda_code"], "vda_name": r["vda_name"], "budget": r["operational_budget"], "risk": r["procurement"]["risk"]}
+            {
+                "vda_code": r["vda_code"],
+                "vda_name": r["vda_name"],
+                "budget": r["operational_budget"],
+                "risk": r["procurement"]["risk"],
+            }
             for r in not_started
         ],
         "top_watch": [
-            {"vda_code": r["vda_code"], "vda_name": r["vda_name"], "budget": r["operational_budget"], "ordered": r["ordered"], "open_order_commitment": r["open_order_commitment"], "risk": r["procurement"]["risk"]}
+            {
+                "vda_code": r["vda_code"],
+                "vda_name": r["vda_name"],
+                "budget": r["operational_budget"],
+                "ordered": r["ordered"],
+                "open_order_commitment": r["open_order_commitment"],
+                "risk": r["procurement"]["risk"],
+            }
             for r in (high + medium)[:8]
         ],
     }

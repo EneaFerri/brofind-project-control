@@ -1,5 +1,5 @@
-from pathlib import Path
 import importlib
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -56,9 +56,7 @@ def test_database_fallback_is_independent_from_working_directory(tmp_path, monke
     monkeypatch.chdir(tmp_path)
     resolved = load_settings({})
     assert resolved.runtime == "development"
-    assert resolved.database_path == (
-        DEVELOPMENT_DATA_ROOT / "brofind_control_dev.db"
-    ).resolve()
+    assert resolved.database_path == (DEVELOPMENT_DATA_ROOT / "brofind_control_dev.db").resolve()
 
 
 def test_demo_database_is_confined_to_demo_directory():
@@ -76,9 +74,9 @@ def test_demo_database_is_confined_to_demo_directory():
 
 
 def test_demo_runtime_hides_and_blocks_destructive_reset(monkeypatch):
-    main_module = importlib.import_module("app.main")
     demo_settings = load_settings({"BROFIND_RUNTIME": "demo"})
-    monkeypatch.setattr(main_module, "settings", demo_settings)
+    for module_name in ("app.routers.pages", "app.routers.projects_api"):
+        monkeypatch.setattr(importlib.import_module(module_name), "settings", demo_settings)
 
     with TestClient(app) as client:
         dashboard = client.get("/")

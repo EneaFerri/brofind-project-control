@@ -1,14 +1,15 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from hashlib import sha256
 from pathlib import Path, PurePosixPath
-from typing import Iterable
 
 from sqlalchemy.orm import Session
 
-from .models import Project, ProjectSourceFile, ProjectSourceImport, ProjectSourceScan
+from .clock import utcnow
+from .models import Project, ProjectSourceFile, ProjectSourceScan
 
 SOURCE_DEFINITIONS = (
     ("GALILEO", "Galileo", "Galileo", {".xlsx"}),
@@ -52,6 +53,7 @@ class SourceDirectoryResult:
     configured: bool
     observations: list[SourceObservation]
     error_message: str | None = None
+
 
 @dataclass(frozen=True)
 class GalileoImportCandidate:
@@ -97,7 +99,9 @@ def _hash_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _scan_source_directory(source_root: Path, project_directory: Path, source_type: str, folder_name: str, extensions: set[str]) -> SourceDirectoryResult:
+def _scan_source_directory(
+    source_root: Path, project_directory: Path, source_type: str, folder_name: str, extensions: set[str]
+) -> SourceDirectoryResult:
     directory = (project_directory / folder_name).resolve(strict=False)
     if not _is_within(directory, source_root) or not _is_within(directory, project_directory):
         return SourceDirectoryResult(source_type, False, [], "Cartella sorgente non valida.")
@@ -121,7 +125,7 @@ def _scan_source_directory(source_root: Path, project_directory: Path, source_ty
                     file_name=candidate.name,
                     relative_path=resolved.relative_to(source_root).as_posix(),
                     size_bytes=metadata.st_size,
-                    modified_at=datetime.fromtimestamp(metadata.st_mtime, tz=timezone.utc).replace(tzinfo=None),
+                    modified_at=datetime.fromtimestamp(metadata.st_mtime, tz=UTC).replace(tzinfo=None),
                     sha256=_hash_file(candidate),
                 )
             )
@@ -139,8 +143,10 @@ def scan_project_sources(project_code: str, source_root: Path) -> list[SourceDir
     ]
 
 
-def refresh_project_sources(db: Session, project: Project, source_root: Path, now: datetime | None = None) -> list[SourceDirectoryResult]:
-    now = now or datetime.utcnow()
+def refresh_project_sources(
+    db: Session, project: Project, source_root: Path, now: datetime | None = None
+) -> list[SourceDirectoryResult]:
+    now = now or utcnow()
     results = scan_project_sources(project.code, source_root)
     existing_files = {
         (item.source_type, item.relative_path): item
@@ -265,6 +271,7 @@ def resolve_source_file_content(project: Project, source_root: Path, source_file
     except OSError as exc:
         raise SourceCenterError("Impossibile leggere il file sorgente selezionato.") from exc
 
+
 def resolve_galileo_import_candidate(project: Project, source_root: Path) -> GalileoImportCandidate:
     files = _present_source_files(project, "GALILEO")
     if not files:
@@ -282,15 +289,37 @@ def resolve_galileo_import_candidate(project: Project, source_root: Path) -> Gal
 
 def _galileo_import_summary(project: Project, files: list[ProjectSourceFile], scan: ProjectSourceScan | None) -> dict:
     if not scan or scan.status == "NOT_CONFIGURED":
-        return {"status": "NOT_CONFIGURED", "label": "Non configurato", "can_import": False, "last_imported_at": None, "last_imported_label": "Mai", "error_message": None}
+        return {
+            "status": "NOT_CONFIGURED",
+            "label": "Non configurato",
+            "can_import": False,
+            "last_imported_at": None,
+            "last_imported_label": "Mai",
+            "error_message": None,
+        }
     if not files:
-        return {"status": "NO_FILES", "label": "Nessun file Galileo disponibile", "can_import": False, "last_imported_at": None, "last_imported_label": "Mai", "error_message": None}
+        return {
+            "status": "NO_FILES",
+            "label": "Nessun file Galileo disponibile",
+            "can_import": False,
+            "last_imported_at": None,
+            "last_imported_label": "Mai",
+            "error_message": None,
+        }
     if len(files) > 1:
-        return {"status": "AMBIGUOUS", "label": "Più file Galileo disponibili", "can_import": False, "last_imported_at": None, "last_imported_label": "Mai", "error_message": "Rimuovi l'ambiguità e aggiorna le fonti."}
+        return {
+            "status": "AMBIGUOUS",
+            "label": "Più file Galileo disponibili",
+            "can_import": False,
+            "last_imported_at": None,
+            "last_imported_label": "Mai",
+            "error_message": "Rimuovi l'ambiguità e aggiorna le fonti.",
+        }
 
     current = files[0]
     matching = [
-        item for item in project.source_imports
+        item
+        for item in project.source_imports
         if item.source_type == "GALILEO" and item.source_file_id == current.id and item.source_hash == current.sha256
     ]
     latest = max(matching, key=lambda item: (item.processed_at, item.id or 0)) if matching else None
@@ -314,9 +343,13 @@ def _galileo_import_summary(project: Project, files: list[ProjectSourceFile], sc
         "last_imported_label": last_imported_at.strftime("%d/%m/%Y %H:%M") if last_imported_at else "Mai",
         "error_message": error,
     }
+
+
 def source_summary(project: Project) -> list[dict]:
     scans = {scan.source_type: scan for scan in project.source_scans}
-    files_by_source = {source_type: _present_source_files(project, source_type) for source_type, _, _, _ in SOURCE_DEFINITIONS}
+    files_by_source = {
+        source_type: _present_source_files(project, source_type) for source_type, _, _, _ in SOURCE_DEFINITIONS
+    }
     summaries = []
     for source_type, label, _, _ in SOURCE_DEFINITIONS:
         scan = scans.get(source_type)
@@ -329,13 +362,24 @@ def source_summary(project: Project) -> list[dict]:
             "status_label": SOURCE_STATUS_LABELS[status],
             "file_count": len(files),
             "last_scanned_at": scan.last_scanned_at if scan else None,
-            "last_scanned_label": scan.last_scanned_at.strftime("%d/%m/%Y %H:%M") if scan and scan.last_scanned_at else "Mai",
-            "files": [{"name": item.file_name, "status": item.change_status, "status_label": FILE_STATUS_LABELS[item.change_status]} for item in files],
+            "last_scanned_label": scan.last_scanned_at.strftime("%d/%m/%Y %H:%M")
+            if scan and scan.last_scanned_at
+            else "Mai",
+            "files": [
+                {
+                    "name": item.file_name,
+                    "status": item.change_status,
+                    "status_label": FILE_STATUS_LABELS[item.change_status],
+                }
+                for item in files
+            ],
         }
         if source_type == "GALILEO":
             summary["import"] = _galileo_import_summary(project, files, scan)
         summaries.append(summary)
     return summaries
+
+
 def source_update_message(summaries: Iterable[dict]) -> str:
     counts = {item["type"]: item["file_count"] for item in summaries}
     documents = counts.get("DOCUMENT", 0)

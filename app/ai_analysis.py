@@ -2,15 +2,14 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import date, datetime
-from typing import Iterable
+from collections.abc import Iterable
+from datetime import date
 
 from sqlalchemy.orm import Session
 
-from .models import CockpitDecision, CustomerOrder, Project, ProjectExtractedField, ProjectSourceContent
 from .control import control_summary
+from .models import CockpitDecision, CustomerOrder, Project, ProjectExtractedField, ProjectSourceContent
 from .rules import finance_summary
-
 
 FIELD_LABELS = {
     "customer_name": "Cliente",
@@ -48,8 +47,18 @@ CONTRACT_DECISION_KEYS = {
 }
 
 MONTHS = {
-    "january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6,
-    "july": 7, "august": 8, "september": 9, "october": 10, "november": 11, "december": 12,
+    "january": 1,
+    "february": 2,
+    "march": 3,
+    "april": 4,
+    "may": 5,
+    "june": 6,
+    "july": 7,
+    "august": 8,
+    "september": 9,
+    "october": 10,
+    "november": 11,
+    "december": 12,
 }
 
 
@@ -104,7 +113,13 @@ def _extract_contract_fields(text: str) -> list[tuple[str, str, float]]:
     for key, pattern in milestone_patterns:
         add(pattern, key, 0.96, re.I | re.M)
 
-    add(r"Contractual delivery date:\s*(.+?)\.?\s*$", "contractual_delivery_date", 0.98, re.I | re.M, _english_date_to_iso)
+    add(
+        r"Contractual delivery date:\s*(.+?)\.?\s*$",
+        "contractual_delivery_date",
+        0.98,
+        re.I | re.M,
+        _english_date_to_iso,
+    )
     add(r"penalty equal to\s*(.+?)\.\s*The aggregate penalty cap", "penalties", 0.95, re.I | re.S)
     add(r"aggregate penalty cap is\s*([^\.]+(?:%[^\.]*)?)\.", "penalty_cap", 0.72, re.I | re.S)
     add(r"Delivery term:\s*(.+?)\.\s*$", "incoterm", 0.96, re.I | re.M)
@@ -131,12 +146,18 @@ def _extract_email_fields(content: ProjectSourceContent) -> list[tuple[str, str,
     return [("payment_update", value, 0.78)]
 
 
-def _upsert_field(db: Session, project: Project, content: ProjectSourceContent, key: str, value: str, confidence: float) -> tuple[ProjectExtractedField, bool]:
-    field = db.query(ProjectExtractedField).filter_by(
-        project_id=project.id,
-        source_content_id=content.id,
-        field_key=key,
-    ).one_or_none()
+def _upsert_field(
+    db: Session, project: Project, content: ProjectSourceContent, key: str, value: str, confidence: float
+) -> tuple[ProjectExtractedField, bool]:
+    field = (
+        db.query(ProjectExtractedField)
+        .filter_by(
+            project_id=project.id,
+            source_content_id=content.id,
+            field_key=key,
+        )
+        .one_or_none()
+    )
     source_ref = f"source_content:{content.id}:{key}"
     if field is None:
         field = ProjectExtractedField(
@@ -186,12 +207,18 @@ def analyze_project_sources(project: Project, db: Session) -> dict:
     return {"sources": analyzed_sources, "fields": touched, "created": created}
 
 
-def _decision_upsert(db: Session, project: Project, key: str, value: str, source_ref: str | None, created_by: str | None) -> CockpitDecision:
-    decision = db.query(CockpitDecision).filter_by(
-        project_id=project.id,
-        decision_type="CONTRACT_CONDITION",
-        decision_key=key,
-    ).one_or_none()
+def _decision_upsert(
+    db: Session, project: Project, key: str, value: str, source_ref: str | None, created_by: str | None
+) -> CockpitDecision:
+    decision = (
+        db.query(CockpitDecision)
+        .filter_by(
+            project_id=project.id,
+            decision_type="CONTRACT_CONDITION",
+            decision_key=key,
+        )
+        .one_or_none()
+    )
     if decision is None:
         decision = CockpitDecision(project_id=project.id, decision_type="CONTRACT_CONDITION", decision_key=key)
         db.add(decision)
@@ -235,7 +262,9 @@ def _sync_customer_order(project: Project, db: Session) -> None:
     order.incoterm = values.get("incoterm")
     order.source_ref = "ai-review:contract"
     order.document_status = "RECEIVED"
-    order.document_note = "Documento acquisito e campi principali revisionati; verifica contrattuale completa ancora in corso."
+    order.document_note = (
+        "Documento acquisito e campi principali revisionati; verifica contrattuale completa ancora in corso."
+    )
 
 
 def apply_reviewed_field(field: ProjectExtractedField, db: Session, created_by: str | None = None) -> None:
@@ -282,10 +311,18 @@ def analysis_insights(project: Project, today: date) -> dict:
     suggestions: list[str] = []
     if control and control.get("budget_health", {}).get("gross_overrun", 0) > 0:
         amount = control["budget_health"]["gross_overrun"]
-        findings.append({"kind": "GALILEO", "title": "Sforamento economico rilevato", "detail": f"Sforamenti locali complessivi € {amount:,.0f}."})
+        findings.append(
+            {
+                "kind": "GALILEO",
+                "title": "Sforamento economico rilevato",
+                "detail": f"Sforamenti locali complessivi € {amount:,.0f}.",
+            }
+        )
         suggestions.append("Verificare le VdA in sforamento e la copertura residua del budget.")
     if finance.get("overdue", 0) > 0:
-        findings.append({"kind": "GALILEO", "title": "Incasso scaduto", "detail": f"Residuo scaduto € {finance['overdue']:,.0f}."})
+        findings.append(
+            {"kind": "GALILEO", "title": "Incasso scaduto", "detail": f"Residuo scaduto € {finance['overdue']:,.0f}."}
+        )
         suggestions.append("Verificare con Amministrazione lo stato dell'incasso e il prossimo follow-up.")
     email = _email_signal(project)
     if email:
@@ -293,7 +330,13 @@ def analysis_insights(project: Project, today: date) -> dict:
         suggestions.append(email["action"])
     penalty = next((f for f in project.extracted_fields if f.field_key == "penalty_cap"), None)
     if penalty and penalty.review_status not in {"CONFIRMED", "CORRECTED"}:
-        findings.append({"kind": "DOCUMENT", "title": "Cap penali da verificare", "detail": f"Valore estratto: {penalty.extracted_value}. Non è ancora operativo."})
+        findings.append(
+            {
+                "kind": "DOCUMENT",
+                "title": "Cap penali da verificare",
+                "detail": f"Valore estratto: {penalty.extracted_value}. Non è ancora operativo.",
+            }
+        )
         suggestions.append("Confermare o correggere il cap penali prima di usarlo nei controlli contrattuali.")
     return {
         "findings": findings,

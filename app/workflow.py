@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
+
 from sqlalchemy.orm import Session
 
+from .clock import utcnow
 from .models import Action, AgentFinding, ChangeRequest, Issue, Project
 
 
@@ -162,7 +164,9 @@ def apply_finding(db: Session, finding: AgentFinding, project: Project, today: d
             db.add(task)
             db.flush()
         ref = f"issue:{issue.id};action:{task.id}"
-        summary = f"Sollecito cliente registrato come criticità #{issue.id}; attività #{task.id} assegnata a {task.owner}."
+        summary = (
+            f"Sollecito cliente registrato come criticità #{issue.id}; attività #{task.id} assegnata a {task.owner}."
+        )
 
     elif action == "CREATE_CHANGE":
         requested = finding.communication.date if finding.communication else today
@@ -204,7 +208,7 @@ def apply_finding(db: Session, finding: AgentFinding, project: Project, today: d
     finding.applied_kind = action
     finding.applied_ref = ref
     finding.applied_summary = summary
-    finding.applied_at = datetime.utcnow()
+    finding.applied_at = utcnow()
     db.commit()
 
     return {"ok": True, "already_applied": False, "kind": action, "ref": ref, "summary": summary}

@@ -1,6 +1,6 @@
+import shutil
 from contextlib import contextmanager
 from pathlib import Path
-import shutil
 
 from fastapi.testclient import TestClient
 
@@ -80,7 +80,12 @@ def test_b1_end_to_end_source_to_review(tmp_path):
         final_payload = client.get("/api/projects/DEMO-B1-001").json()
         assert final_payload["customer"] == "Demo Process Industries S.p.A."
         assert final_payload["order_value"] == 500000
-        assert next(item for item in final_payload["extracted_fields"] if item["field_key"] == "penalty_cap")["operational_value"] is None
+        assert (
+            next(item for item in final_payload["extracted_fields"] if item["field_key"] == "penalty_cap")[
+                "operational_value"
+            ]
+            is None
+        )
 
         # PM creates the financial follow-up and hands it to Administration.
         client.post("/login", data={"username": "pm_greco"}, follow_redirects=False)

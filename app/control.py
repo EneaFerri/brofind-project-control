@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Optional
 
 from .models import Project, ProjectControlSnapshot
 from .procurement import analyze_procurement_row, requirements_by_vda, summarize_procurement
 
 
-def latest_control_snapshot(project: Project) -> Optional[ProjectControlSnapshot]:
+def latest_control_snapshot(project: Project) -> ProjectControlSnapshot | None:
     if not project.control_snapshots:
         return None
     return max(project.control_snapshots, key=lambda s: (s.captured_at, s.id or 0))
@@ -30,12 +29,10 @@ def _economic_status(row: dict) -> dict:
 def _budget_health(rows: list[dict], operational_budget: float) -> dict:
     gross_overrun = sum(max(r["committed_cost"] - r["operational_budget"], 0.0) for r in rows)
     closed_headroom = sum(
-        max(r["operational_budget"] - r["committed_cost"], 0.0)
-        for r in rows if r["purchases_closed"] is True
+        max(r["operational_budget"] - r["committed_cost"], 0.0) for r in rows if r["purchases_closed"] is True
     )
     open_headroom = sum(
-        max(r["operational_budget"] - r["committed_cost"], 0.0)
-        for r in rows if r["purchases_closed"] is not True
+        max(r["operational_budget"] - r["committed_cost"], 0.0) for r in rows if r["purchases_closed"] is not True
     )
     uncovered = max(gross_overrun - closed_headroom, 0.0)
     gross_pct = (gross_overrun / operational_budget * 100) if operational_budget else 0.0
@@ -74,7 +71,7 @@ def _budget_health(rows: list[dict], operational_budget: float) -> dict:
     }
 
 
-def control_summary(project: Project) -> Optional[dict]:
+def control_summary(project: Project) -> dict | None:
     snap = latest_control_snapshot(project)
     if not snap:
         return None
@@ -87,11 +84,21 @@ def control_summary(project: Project) -> Optional[dict]:
     order_reconciliation = snap.orders_jmrp - snap.orders_extract
     residual_reconciliation = snap.orders_extract - (snap.received + snap.open_order_commitment)
 
-    groups = defaultdict(lambda: {
-        "vda_code": "", "vda_name": "", "baseline_budget": 0.0, "operational_budget": 0.0,
-        "ordered": 0.0, "received": 0.0, "open_order_commitment": 0.0, "labor": 0.0,
-        "overhead": 0.0, "centers": [], "closed_values": [],
-    })
+    groups = defaultdict(
+        lambda: {
+            "vda_code": "",
+            "vda_name": "",
+            "baseline_budget": 0.0,
+            "operational_budget": 0.0,
+            "ordered": 0.0,
+            "received": 0.0,
+            "open_order_commitment": 0.0,
+            "labor": 0.0,
+            "overhead": 0.0,
+            "centers": [],
+            "closed_values": [],
+        }
+    )
     for line in snap.lines:
         g = groups[line.vda_code]
         g["vda_code"] = line.vda_code
@@ -105,23 +112,26 @@ def control_summary(project: Project) -> Optional[dict]:
         g["overhead"] += line.overhead
         if line.purchases_closed is not None:
             g["closed_values"].append(bool(line.purchases_closed))
-        g["centers"].append({
-            "analysis_center": line.analysis_center,
-            "baseline_budget": line.baseline_budget,
-            "operational_budget": line.operational_budget,
-            "ordered": line.ordered,
-            "received": line.received,
-            "open_order_commitment": line.open_order_commitment,
-            "labor": line.labor,
-            "overhead": line.overhead,
-            "purchases_closed": line.purchases_closed,
-            "source_ref": line.source_ref,
-        })
+        g["centers"].append(
+            {
+                "analysis_center": line.analysis_center,
+                "baseline_budget": line.baseline_budget,
+                "operational_budget": line.operational_budget,
+                "ordered": line.ordered,
+                "received": line.received,
+                "open_order_commitment": line.open_order_commitment,
+                "labor": line.labor,
+                "overhead": line.overhead,
+                "purchases_closed": line.purchases_closed,
+                "source_ref": line.source_ref,
+            }
+        )
 
     rows = []
     req_map = requirements_by_vda(project)
     saving_decisions = {
-        d.decision_key: d for d in getattr(project, "cockpit_decisions", [])
+        d.decision_key: d
+        for d in getattr(project, "cockpit_decisions", [])
         if d.decision_type == "VDA_SAVING" and d.status == "ACTIVE" and (d.value or "").upper() == "CONSOLIDATED"
     }
     for g in groups.values():
@@ -144,27 +154,64 @@ def control_summary(project: Project) -> Optional[dict]:
         }
         row["economic_status"] = _economic_status(row)
         row["procurement"] = analyze_procurement_row(
-            row, delivery_window=getattr(project, "delivery_window", "UNKNOWN"), requirements=req_map.get(row["vda_code"], [])
+            row,
+            delivery_window=getattr(project, "delivery_window", "UNKNOWN"),
+            requirements=req_map.get(row["vda_code"], []),
         )
         row["procurement_status"] = row["procurement"]["state"]
         row["procurement_risk"] = row["procurement"]["risk"]
         if remaining <= 0.01:
-            row["saving_status"] = {"key": "NONE", "tone": "neutral", "label": "—", "amount": 0.0, "note": "Nessun residuo positivo da qualificare."}
+            row["saving_status"] = {
+                "key": "NONE",
+                "tone": "neutral",
+                "label": "—",
+                "amount": 0.0,
+                "note": "Nessun residuo positivo da qualificare.",
+            }
         elif saving_confirmed:
-            row["saving_status"] = {"key": "CONSOLIDATED", "tone": "green", "label": "Saving consolidato", "amount": remaining, "note": "Residuo validato e trasferibile al margine di commessa; non autorizza spesa su altre VdA senza riallocazione."}
+            row["saving_status"] = {
+                "key": "CONSOLIDATED",
+                "tone": "green",
+                "label": "Saving consolidato",
+                "amount": remaining,
+                "note": "Residuo validato e trasferibile al margine di commessa; non autorizza spesa su altre VdA senza riallocazione.",
+            }
         elif purchases_closed is True:
-            row["saving_status"] = {"key": "CANDIDATE", "tone": "amber", "label": "Saving candidato", "amount": remaining, "note": "Acquisti dichiarati conclusi: verificare eventuali costi residui prima di consolidare il saving."}
+            row["saving_status"] = {
+                "key": "CANDIDATE",
+                "tone": "amber",
+                "label": "Saving candidato",
+                "amount": remaining,
+                "note": "Acquisti dichiarati conclusi: verificare eventuali costi residui prima di consolidare il saving.",
+            }
         else:
-            row["saving_status"] = {"key": "RESIDUAL", "tone": "neutral", "label": "Budget residuo", "amount": remaining, "note": "Residuo matematico: non è ancora saving."}
+            row["saving_status"] = {
+                "key": "RESIDUAL",
+                "tone": "neutral",
+                "label": "Budget residuo",
+                "amount": remaining,
+                "note": "Residuo matematico: non è ancora saving.",
+            }
         rows.append(row)
 
     economic_order = {"NO_BUDGET": 0, "OVER": 1, "NEAR_LIMIT": 2, "WITHIN": 3, "NO_ACTIVITY": 4}
-    procurement_order = {"NOT_STARTED": 0, "PREPARATION_UNKNOWN": 1, "OPEN": 2, "IN_PROGRESS_UNKNOWN": 3, "UNKNOWN": 4, "CLOSED": 5, "NA": 6}
-    rows.sort(key=lambda x: (
-        economic_order.get(x["economic_status"]["key"], 9),
-        procurement_order.get(x["procurement_status"]["key"], 9),
-        -abs(min(x["remaining_uncommitted"], 0)), x["vda_name"]
-    ))
+    procurement_order = {
+        "NOT_STARTED": 0,
+        "PREPARATION_UNKNOWN": 1,
+        "OPEN": 2,
+        "IN_PROGRESS_UNKNOWN": 3,
+        "UNKNOWN": 4,
+        "CLOSED": 5,
+        "NA": 6,
+    }
+    rows.sort(
+        key=lambda x: (
+            economic_order.get(x["economic_status"]["key"], 9),
+            procurement_order.get(x["procurement_status"]["key"], 9),
+            -abs(min(x["remaining_uncommitted"], 0)),
+            x["vda_name"],
+        )
+    )
 
     line_baseline = sum(r["baseline_budget"] for r in rows)
     line_operational = sum(r["operational_budget"] for r in rows)
@@ -186,46 +233,58 @@ def control_summary(project: Project) -> Optional[dict]:
     extra_order_net = sum(o.net_value for o in customer_orders if o.order_kind == "EXTRA")
     budget_margin = customer_order_net - snap.operational_budget if customer_order_net else None
     budget_margin_pct = (budget_margin / customer_order_net * 100) if customer_order_net else None
-    contract_documentation_complete = bool(customer_orders) and all(o.document_status == "COMPLETE" for o in customer_orders)
+    contract_documentation_complete = bool(customer_orders) and all(
+        o.document_status == "COMPLETE" for o in customer_orders
+    )
 
     quality_issues = []
     if abs(order_reconciliation) > 0.01:
-        quality_issues.append({
-            "key": "ORDERS_MISMATCH",
-            "label": "Totale ordini non perfettamente allineato tra JMRP e interrogazione ordini",
-            "amount": order_reconciliation,
-            "detail": f"JMRP €{snap.orders_jmrp:,.2f} · estrazione ordini €{snap.orders_extract:,.2f}",
-        })
+        quality_issues.append(
+            {
+                "key": "ORDERS_MISMATCH",
+                "label": "Totale ordini non perfettamente allineato tra JMRP e interrogazione ordini",
+                "amount": order_reconciliation,
+                "detail": f"JMRP €{snap.orders_jmrp:,.2f} · estrazione ordini €{snap.orders_extract:,.2f}",
+            }
+        )
     if abs(residual_reconciliation) > 0.01:
-        quality_issues.append({
-            "key": "RESIDUAL_MISMATCH",
-            "label": "Ordini, ricevimenti e residuo non quadrano",
-            "amount": residual_reconciliation,
-            "detail": f"Ordini €{snap.orders_extract:,.2f} · ricevuto+residuo €{snap.received + snap.open_order_commitment:,.2f}",
-        })
+        quality_issues.append(
+            {
+                "key": "RESIDUAL_MISMATCH",
+                "label": "Ordini, ricevimenti e residuo non quadrano",
+                "amount": residual_reconciliation,
+                "detail": f"Ordini €{snap.orders_extract:,.2f} · ricevuto+residuo €{snap.received + snap.open_order_commitment:,.2f}",
+            }
+        )
     if abs(line_operational - snap.operational_budget) > 0.01:
-        quality_issues.append({
-            "key": "BUDGET_BRIDGE_MISMATCH",
-            "label": "Budget VdA ricostruito e budget operativo Galileo differiscono leggermente",
-            "amount": line_operational - snap.operational_budget,
-            "detail": f"Baseline + Extra 1 per VdA €{line_operational:,.2f} · Galileo €{snap.operational_budget:,.2f}",
-        })
+        quality_issues.append(
+            {
+                "key": "BUDGET_BRIDGE_MISMATCH",
+                "label": "Budget VdA ricostruito e budget operativo Galileo differiscono leggermente",
+                "amount": line_operational - snap.operational_budget,
+                "detail": f"Baseline + Extra 1 per VdA €{line_operational:,.2f} · Galileo €{snap.operational_budget:,.2f}",
+            }
+        )
     unallocated_labor = snap.labor - line_labor
     unallocated_overhead = snap.overhead - line_overhead
     if abs(unallocated_labor) > 0.01:
-        quality_issues.append({
-            "key": "LABOR_UNALLOCATED",
-            "label": "Parte del costo uomo non è ancora attribuita a una VdA nel pilot",
-            "amount": unallocated_labor,
-            "detail": f"Totale JMRP €{snap.labor:,.2f} · attribuito alle VdA €{line_labor:,.2f}",
-        })
+        quality_issues.append(
+            {
+                "key": "LABOR_UNALLOCATED",
+                "label": "Parte del costo uomo non è ancora attribuita a una VdA nel pilot",
+                "amount": unallocated_labor,
+                "detail": f"Totale JMRP €{snap.labor:,.2f} · attribuito alle VdA €{line_labor:,.2f}",
+            }
+        )
     if abs(unallocated_overhead) > 0.01:
-        quality_issues.append({
-            "key": "OVERHEAD_UNALLOCATED",
-            "label": "Spese generali non ancora attribuite a una VdA nel pilot",
-            "amount": unallocated_overhead,
-            "detail": f"Totale JMRP €{snap.overhead:,.2f} · attribuito alle VdA €{line_overhead:,.2f}",
-        })
+        quality_issues.append(
+            {
+                "key": "OVERHEAD_UNALLOCATED",
+                "label": "Spese generali non ancora attribuite a una VdA nel pilot",
+                "amount": unallocated_overhead,
+                "detail": f"Totale JMRP €{snap.overhead:,.2f} · attribuito alle VdA €{line_overhead:,.2f}",
+            }
+        )
 
     budget_health = _budget_health(rows, snap.operational_budget)
     saving_candidate = sum(r["saving_status"]["amount"] for r in rows if r["saving_status"]["key"] == "CANDIDATE")
@@ -279,13 +338,26 @@ def control_summary(project: Project) -> Optional[dict]:
         },
         "procurement": procurement_summary,
         "contract": {
-            "orders": [{
-                "number": o.order_number, "date": o.order_date, "kind": o.order_kind, "quote_ref": o.quote_ref,
-                "net_value": o.net_value, "tax_value": o.tax_value, "gross_value": o.gross_value,
-                "currency": o.currency, "payment_terms": o.payment_terms, "incoterm": o.incoterm,
-                "scope_summary": o.scope_summary, "source_ref": o.source_ref, "note": o.note,
-                "document_status": o.document_status, "document_note": o.document_note,
-            } for o in customer_orders],
+            "orders": [
+                {
+                    "number": o.order_number,
+                    "date": o.order_date,
+                    "kind": o.order_kind,
+                    "quote_ref": o.quote_ref,
+                    "net_value": o.net_value,
+                    "tax_value": o.tax_value,
+                    "gross_value": o.gross_value,
+                    "currency": o.currency,
+                    "payment_terms": o.payment_terms,
+                    "incoterm": o.incoterm,
+                    "scope_summary": o.scope_summary,
+                    "source_ref": o.source_ref,
+                    "note": o.note,
+                    "document_status": o.document_status,
+                    "document_note": o.document_note,
+                }
+                for o in customer_orders
+            ],
             "net_total": customer_order_net,
             "base_net": base_order_net,
             "extra_net": extra_order_net,
@@ -302,8 +374,13 @@ def control_summary(project: Project) -> Optional[dict]:
             "unallocated_overhead": unallocated_overhead,
         },
         "line_totals": {
-            "baseline": line_baseline, "operational": line_operational, "ordered": line_ordered,
-            "received": line_received, "open": line_open, "labor": line_labor, "overhead": line_overhead,
+            "baseline": line_baseline,
+            "operational": line_operational,
+            "ordered": line_ordered,
+            "received": line_received,
+            "open": line_open,
+            "labor": line_labor,
+            "overhead": line_overhead,
         },
         "vda_rows": rows,
         "previous": previous,

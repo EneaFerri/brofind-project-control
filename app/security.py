@@ -1,8 +1,10 @@
 from fastapi import Request
 from sqlalchemy.orm import Session
+
 from .models import User
 
 DEFAULT_USER = "director"
+
 
 def current_user(request: Request, db: Session) -> User:
     username = request.cookies.get("demo_user") or DEFAULT_USER
@@ -11,8 +13,10 @@ def current_user(request: Request, db: Session) -> User:
         user = db.query(User).filter(User.username == DEFAULT_USER).first()
     return user
 
+
 def visible_projects_query(db: Session, user: User):
     from .models import Action, Project
+
     q = db.query(Project)
     if user.role == "SALES":
         q = q.filter(Project.sales_owner == user.owner_key)

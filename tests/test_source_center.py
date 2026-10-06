@@ -2,16 +2,16 @@ from __future__ import annotations
 
 import os
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import pytest
 from fastapi.testclient import TestClient
 
+from app.config import settings
 from app.db import SessionLocal
 from app.main import app
 from app.models import Project, ProjectSourceFile, ProjectSourceScan
 from app.source_center import SourceCenterError, refresh_project_sources, scan_project_sources
-from app.config import settings
 
 
 @contextmanager
@@ -54,7 +54,10 @@ def test_source_center_handles_missing_project_folder_and_empty_sources(tmp_path
         code = _create_project(client, "CS5-EMPTY")
         assert _refresh(code, tmp_path) == "ACQUISIZIONE_DATI"
         with SessionLocal() as db:
-            scans = {item.source_type: item for item in db.query(ProjectSourceScan).join(Project).filter(Project.code == code)}
+            scans = {
+                item.source_type: item
+                for item in db.query(ProjectSourceScan).join(Project).filter(Project.code == code)
+            }
             assert set(scans) == {"GALILEO", "DOCUMENT", "OUTLOOK"}
             assert all(item.status == "NOT_CONFIGURED" and item.file_count == 0 for item in scans.values())
 
@@ -88,9 +91,17 @@ def test_source_center_detects_supported_files_ignores_temporary_files_and_keeps
         assert after == before
 
         with SessionLocal() as db:
-            files = db.query(ProjectSourceFile).join(Project).filter(Project.code == code, ProjectSourceFile.is_present.is_(True)).all()
+            files = (
+                db.query(ProjectSourceFile)
+                .join(Project)
+                .filter(Project.code == code, ProjectSourceFile.is_present.is_(True))
+                .all()
+            )
             assert {item.file_name for item in files} == {"control.xlsx", "contratto.pdf", "cliente.msg", "cliente.eml"}
-            scans = {item.source_type: item for item in db.query(ProjectSourceScan).join(Project).filter(Project.code == code)}
+            scans = {
+                item.source_type: item
+                for item in db.query(ProjectSourceScan).join(Project).filter(Project.code == code)
+            }
             assert scans["GALILEO"].file_count == 1
             assert scans["DOCUMENT"].file_count == 1
             assert scans["OUTLOOK"].file_count == 2
@@ -129,7 +140,12 @@ def test_source_center_uses_hash_for_change_and_preserves_missing_history(tmp_pa
             assert record.id == first_id
             assert record.change_status == "MISSING"
             assert record.is_present is False
-            scan = db.query(ProjectSourceScan).join(Project).filter(Project.code == code, ProjectSourceScan.source_type == "GALILEO").one()
+            scan = (
+                db.query(ProjectSourceScan)
+                .join(Project)
+                .filter(Project.code == code, ProjectSourceScan.source_type == "GALILEO")
+                .one()
+            )
             assert scan.file_count == 0
 
         workbook.write_bytes(b"version-two")

@@ -1,15 +1,15 @@
 from __future__ import annotations
 
+import json
+import tempfile
 from dataclasses import dataclass
-from datetime import datetime
 from email import policy
 from email.parser import BytesParser
 from io import BytesIO
-import json
 from pathlib import Path
-import tempfile
 
 from docx import Document
+
 try:
     from extract_msg import Message
 except ImportError:  # .msg support is optional until the dependency is installed
@@ -55,7 +55,12 @@ def _document(content: bytes, filename: str) -> ReadContent:
         raise SourceReadError("Documento non leggibile.") from exc
     if not text:
         raise SourceReadError("Documento senza testo estraibile; OCR non disponibile.")
-    return ReadContent("DOCUMENT", _document_type(filename, text), text, json.dumps({"filename": filename, "format": suffix[1:].upper()}, ensure_ascii=False))
+    return ReadContent(
+        "DOCUMENT",
+        _document_type(filename, text),
+        text,
+        json.dumps({"filename": filename, "format": suffix[1:].upper()}, ensure_ascii=False),
+    )
 
 
 def _addresses(value) -> list[str]:
@@ -74,7 +79,14 @@ def _eml(content: bytes) -> ReadContent:
         raise SourceReadError("Email EML non leggibile.") from exc
     if not (message.get("Subject") or text):
         raise SourceReadError("Email EML senza contenuto leggibile.")
-    metadata = {"sender": message.get("From", ""), "recipients": _addresses(message.get_all("To", [])), "cc": _addresses(message.get_all("Cc", [])), "sent_at": message.get("Date"), "subject": message.get("Subject", ""), "attachment_names": attachments}
+    metadata = {
+        "sender": message.get("From", ""),
+        "recipients": _addresses(message.get_all("To", [])),
+        "cc": _addresses(message.get_all("Cc", [])),
+        "sent_at": message.get("Date"),
+        "subject": message.get("Subject", ""),
+        "attachment_names": attachments,
+    }
     return ReadContent("EMAIL", "OUTLOOK_EMAIL", text.strip(), json.dumps(metadata, ensure_ascii=False))
 
 
@@ -86,8 +98,17 @@ def _msg(content: bytes) -> ReadContent:
         if Message is None:
             raise SourceReadError("Lettura MSG non disponibile: installare extract-msg.")
         message = Message(temp.name)
-        attachments = [getattr(item, "longFilename", None) or getattr(item, "shortFilename", None) for item in message.attachments]
-        metadata = {"sender": message.sender or "", "recipients": _addresses(message.to), "cc": _addresses(message.cc), "sent_at": str(message.date) if message.date else None, "subject": message.subject or "", "attachment_names": [item for item in attachments if item]}
+        attachments = [
+            getattr(item, "longFilename", None) or getattr(item, "shortFilename", None) for item in message.attachments
+        ]
+        metadata = {
+            "sender": message.sender or "",
+            "recipients": _addresses(message.to),
+            "cc": _addresses(message.cc),
+            "sent_at": str(message.date) if message.date else None,
+            "subject": message.subject or "",
+            "attachment_names": [item for item in attachments if item],
+        }
         text = (message.body or "").strip()
     except Exception as exc:
         raise SourceReadError("Email MSG non leggibile.") from exc

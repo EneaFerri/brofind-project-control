@@ -5,18 +5,24 @@ from fastapi.testclient import TestClient
 from app.b1_control_adapter import import_b1_control_workbook
 from app.db import SessionLocal
 from app.main import app
-from app.models import CockpitDecision, Project, ProjectExtractedField, ProjectSourceContent, ProjectSourceFile
+from app.models import CockpitDecision, Project, ProjectSourceContent, ProjectSourceFile
 
 CONTRACT = Path(__file__).resolve().parents[1] / "demo" / "b1" / "source" / "DEMO-B1-001_contract.txt"
 CONTROL = Path(__file__).resolve().parents[1] / "demo" / "b1" / "assets" / "DEMO-B1-001_control.xlsx"
 
 
 def _create_demo_project(client: TestClient):
-    response = client.post("/projects", data={"code": "DEMO-B1-001", "pm_username": "pm_greco", "sales_username": "sales_riva"}, follow_redirects=False)
+    response = client.post(
+        "/projects",
+        data={"code": "DEMO-B1-001", "pm_username": "pm_greco", "sales_username": "sales_riva"},
+        follow_redirects=False,
+    )
     assert response.status_code == 303
 
 
-def _add_content(project_code: str, kind: str, content_type: str, text: str, name: str, metadata_json: str = "{}") -> int:
+def _add_content(
+    project_code: str, kind: str, content_type: str, text: str, name: str, metadata_json: str = "{}"
+) -> int:
     with SessionLocal() as db:
         project = db.query(Project).filter_by(code=project_code).one()
         source = ProjectSourceFile(
@@ -50,7 +56,9 @@ def test_contract_analysis_extracts_core_fields_and_is_idempotent():
     with TestClient(app) as client:
         client.post("/api/demo/reset")
         _create_demo_project(client)
-        _add_content("DEMO-B1-001", "DOCUMENT", "CONTRACT", CONTRACT.read_text(encoding="utf-8"), "DEMO-B1-001_contract.pdf")
+        _add_content(
+            "DEMO-B1-001", "DOCUMENT", "CONTRACT", CONTRACT.read_text(encoding="utf-8"), "DEMO-B1-001_contract.pdf"
+        )
         response = client.post("/project/DEMO-B1-001/ai/analyze", follow_redirects=False)
         assert response.status_code == 303
         detail = client.get("/api/projects/DEMO-B1-001").json()
@@ -89,7 +97,9 @@ def test_human_review_applies_only_confirmed_contract_values_and_redirects():
             assert db.query(CockpitDecision).filter_by(project_id=project.id, decision_key="penalty_cap").count() == 0
 
         for key in ("customer_name", "contract_value", "order_number", "order_date", "currency", "payment_terms"):
-            response = client.post(f"/api/extracted-fields/{fields[key]['id']}/review", data={"status": "CONFIRMED"}).json()
+            response = client.post(
+                f"/api/extracted-fields/{fields[key]['id']}/review", data={"status": "CONFIRMED"}
+            ).json()
             assert response["provenance"] == "OPERATIONAL"
 
         after = client.get("/api/projects/DEMO-B1-001").json()
@@ -109,9 +119,12 @@ def test_cross_source_analysis_surfaces_galileo_outlook_and_unconfirmed_penalty_
         _create_demo_project(client)
         _add_content("DEMO-B1-001", "DOCUMENT", "CONTRACT", CONTRACT.read_text(encoding="utf-8"), "contract.pdf")
         _add_content(
-            "DEMO-B1-001", "EMAIL", "OUTLOOK_EMAIL",
+            "DEMO-B1-001",
+            "EMAIL",
+            "OUTLOOK_EMAIL",
             "We confirm EUR 50,000 has been paid. EUR 200,000 remains open and payment is expected by 30 September 2026.",
-            "payment.eml", '{"sender":"finance@customer.example","subject":"Payment status INV-DEMO-001"}',
+            "payment.eml",
+            '{"sender":"finance@customer.example","subject":"Payment status INV-DEMO-001"}',
         )
         with SessionLocal() as db:
             import_b1_control_workbook(CONTROL.read_bytes(), db, expected_project_code="DEMO-B1-001")
@@ -130,9 +143,15 @@ def test_review_is_denied_for_project_outside_user_visibility():
     with TestClient(app) as client:
         client.post("/api/demo/reset")
         content_id = _add_content("P-26003", "DOCUMENT", "CONTRACT", "Customer: Hidden Customer", "hidden.pdf")
-        created = client.post("/api/projects/P-26003/extracted-fields", data={
-            "source_content_id": content_id, "field_key": "customer_name", "extracted_value": "Hidden Customer", "confidence": "0.9",
-        }).json()
+        created = client.post(
+            "/api/projects/P-26003/extracted-fields",
+            data={
+                "source_content_id": content_id,
+                "field_key": "customer_name",
+                "extracted_value": "Hidden Customer",
+                "confidence": "0.9",
+            },
+        ).json()
         client.post("/login", data={"username": "sales_riva"})
         response = client.post(f"/api/extracted-fields/{created['id']}/review", data={"status": "CONFIRMED"})
         assert response.status_code == 403

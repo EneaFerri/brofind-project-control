@@ -1,8 +1,7 @@
 import os
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Mapping
-
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATA_ROOT = PROJECT_ROOT / "data"
@@ -34,7 +33,7 @@ def _sqlite_path_from_url(database_url: str) -> Path | None:
     prefix = "sqlite:///"
     if not database_url.startswith(prefix):
         return None
-    raw_path = database_url[len(prefix):]
+    raw_path = database_url[len(prefix) :]
     if not raw_path or raw_path == ":memory:":
         return None
     return _resolved_repo_path(raw_path)
@@ -92,18 +91,12 @@ def load_settings(environment: Mapping[str, str] | None = None) -> Settings:
             )
         database_path = _resolved_repo_path(configured_path)
         if database_path.suffix.lower() != ".db" or not _is_within(database_path, TEST_DATA_ROOT):
-            raise RuntimeError(
-                "Runtime test rifiutato: il database deve essere un file .db sotto data/test."
-            )
+            raise RuntimeError("Runtime test rifiutato: il database deve essere un file .db sotto data/test.")
         database_url = _sqlite_url(database_path)
     elif runtime == "demo":
-        database_path = _resolved_repo_path(
-            configured_path or str(DEMO_DATA_ROOT / "brofind_demo.db")
-        )
+        database_path = _resolved_repo_path(configured_path or str(DEMO_DATA_ROOT / "brofind_demo.db"))
         if database_path.suffix.lower() != ".db" or not _is_within(database_path, DEMO_DATA_ROOT):
-            raise RuntimeError(
-                "Runtime demo rifiutato: il database deve essere un file .db sotto data/demo."
-            )
+            raise RuntimeError("Runtime demo rifiutato: il database deve essere un file .db sotto data/demo.")
         database_url = _sqlite_url(database_path)
     elif configured_path:
         database_path = _resolved_repo_path(configured_path)
@@ -123,9 +116,7 @@ def load_settings(environment: Mapping[str, str] | None = None) -> Settings:
         database_path=database_path,
         app_secret=env.get("APP_SECRET", "brofind-demo-secret"),
         source_root=_resolved_repo_path(env.get("BROFIND_SOURCE_ROOT", "data_sources")),
-        technical_document_findings_enabled=_env_bool(
-            env, "TECHNICAL_DOCUMENT_FINDINGS_ENABLED", True
-        ),
+        technical_document_findings_enabled=_env_bool(env, "TECHNICAL_DOCUMENT_FINDINGS_ENABLED", True),
     )
 
 

@@ -1,13 +1,14 @@
 """Fail-closed importer for the frozen B1 economic-control workbook."""
+
 from __future__ import annotations
 
+import re
+import zipfile
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from io import BytesIO
-import re
 from typing import Any
-import zipfile
 
 import openpyxl
 from sqlalchemy import delete
@@ -23,8 +24,36 @@ class B1ImportError(ValueError):
 SHEETS = ("CONTROL_SNAPSHOT", "CONTROL_LINES", "INVOICES")
 SIGNATURE = frozenset(("CONTROL_SNAPSHOT", "CONTROL_LINES"))
 HEADERS = {
-    "CONTROL_SNAPSHOT": ("Project_ID", "Snapshot_Date", "Source_Label", "Baseline_Budget", "Operational_Budget", "Orders_JMRP", "Orders_Extract", "Received", "Open_Order_Commitment", "Labor", "Overhead", "Note"),
-    "CONTROL_LINES": ("Project_ID", "Snapshot_Date", "VDA_Code", "VDA_Name", "Analysis_Center", "Baseline_Budget", "Operational_Budget", "Ordered", "Received", "Open_Order_Commitment", "Labor", "Overhead", "Purchases_Closed", "Source_Ref"),
+    "CONTROL_SNAPSHOT": (
+        "Project_ID",
+        "Snapshot_Date",
+        "Source_Label",
+        "Baseline_Budget",
+        "Operational_Budget",
+        "Orders_JMRP",
+        "Orders_Extract",
+        "Received",
+        "Open_Order_Commitment",
+        "Labor",
+        "Overhead",
+        "Note",
+    ),
+    "CONTROL_LINES": (
+        "Project_ID",
+        "Snapshot_Date",
+        "VDA_Code",
+        "VDA_Name",
+        "Analysis_Center",
+        "Baseline_Budget",
+        "Operational_Budget",
+        "Ordered",
+        "Received",
+        "Open_Order_Commitment",
+        "Labor",
+        "Overhead",
+        "Purchases_Closed",
+        "Source_Ref",
+    ),
     "INVOICES": ("Project_ID", "Invoice_Number", "Milestone", "Issue_Date", "Due_Date", "Amount", "Paid_Amount"),
 }
 VDA_CODE = re.compile(r"C\d{6}\Z")
@@ -75,7 +104,7 @@ def _rows(sheet, expected: tuple[str, ...]) -> list[dict[str, Any]]:
     for row in range(2, sheet.max_row + 1):
         values = [sheet.cell(row, col).value for col in range(1, len(expected) + 1)]
         if any(value is not None for value in values):
-            output.append(dict(zip(expected, values)))
+            output.append(dict(zip(expected, values, strict=True)))
     return output
 
 
@@ -152,13 +181,38 @@ def _parse(content: bytes) -> ParsedB1:
         "source_label": _text(raw["Source_Label"], "CONTROL_SNAPSHOT.Source_Label"),
         "note": _text(raw["Note"], "CONTROL_SNAPSHOT.Note", optional=True),
     }
-    for key in ("Baseline_Budget", "Operational_Budget", "Orders_JMRP", "Orders_Extract", "Received", "Open_Order_Commitment", "Labor", "Overhead"):
+    for key in (
+        "Baseline_Budget",
+        "Operational_Budget",
+        "Orders_JMRP",
+        "Orders_Extract",
+        "Received",
+        "Open_Order_Commitment",
+        "Labor",
+        "Overhead",
+    ):
         snapshot[key] = _amount(raw[key], f"CONTROL_SNAPSHOT.{key}")
     lines, keys, names = [], set(), {}
     for position, raw in enumerate(line_rows, 2):
         prefix = f"CONTROL_LINES riga {position}"
-        line = {"project_code": _text(raw["Project_ID"], f"{prefix}.Project_ID"), "snapshot_date": _date(raw["Snapshot_Date"], f"{prefix}.Snapshot_Date"), "vda_code": _text(raw["VDA_Code"], f"{prefix}.VDA_Code"), "vda_name": _text(raw["VDA_Name"], f"{prefix}.VDA_Name"), "analysis_center": _text(raw["Analysis_Center"], f"{prefix}.Analysis_Center"), "source_ref": _text(raw["Source_Ref"], f"{prefix}.Source_Ref"), "purchases_closed": _boolean(raw["Purchases_Closed"], f"{prefix}.Purchases_Closed")}
-        for key in ("Baseline_Budget", "Operational_Budget", "Ordered", "Received", "Open_Order_Commitment", "Labor", "Overhead"):
+        line = {
+            "project_code": _text(raw["Project_ID"], f"{prefix}.Project_ID"),
+            "snapshot_date": _date(raw["Snapshot_Date"], f"{prefix}.Snapshot_Date"),
+            "vda_code": _text(raw["VDA_Code"], f"{prefix}.VDA_Code"),
+            "vda_name": _text(raw["VDA_Name"], f"{prefix}.VDA_Name"),
+            "analysis_center": _text(raw["Analysis_Center"], f"{prefix}.Analysis_Center"),
+            "source_ref": _text(raw["Source_Ref"], f"{prefix}.Source_Ref"),
+            "purchases_closed": _boolean(raw["Purchases_Closed"], f"{prefix}.Purchases_Closed"),
+        }
+        for key in (
+            "Baseline_Budget",
+            "Operational_Budget",
+            "Ordered",
+            "Received",
+            "Open_Order_Commitment",
+            "Labor",
+            "Overhead",
+        ):
             line[key] = _amount(raw[key], f"{prefix}.{key}")
         if not VDA_CODE.fullmatch(line["vda_code"]):
             raise _error(f"{prefix}.VDA_Code non conforme")
@@ -175,17 +229,43 @@ def _parse(content: bytes) -> ParsedB1:
     invoices, invoice_numbers = [], set()
     for position, raw in enumerate(invoice_rows, 2):
         prefix = f"INVOICES riga {position}"
-        invoice = {"project_code": _text(raw["Project_ID"], f"{prefix}.Project_ID"), "number": _text(raw["Invoice_Number"], f"{prefix}.Invoice_Number"), "milestone": _text(raw["Milestone"], f"{prefix}.Milestone"), "issue_date": _date(raw["Issue_Date"], f"{prefix}.Issue_Date"), "due_date": _date(raw["Due_Date"], f"{prefix}.Due_Date"), "amount": _amount(raw["Amount"], f"{prefix}.Amount"), "paid_amount": _amount(raw["Paid_Amount"], f"{prefix}.Paid_Amount")}
-        if invoice["project_code"] != snapshot["project_code"] or invoice["due_date"] < invoice["issue_date"] or invoice["paid_amount"] > invoice["amount"]:
+        invoice = {
+            "project_code": _text(raw["Project_ID"], f"{prefix}.Project_ID"),
+            "number": _text(raw["Invoice_Number"], f"{prefix}.Invoice_Number"),
+            "milestone": _text(raw["Milestone"], f"{prefix}.Milestone"),
+            "issue_date": _date(raw["Issue_Date"], f"{prefix}.Issue_Date"),
+            "due_date": _date(raw["Due_Date"], f"{prefix}.Due_Date"),
+            "amount": _amount(raw["Amount"], f"{prefix}.Amount"),
+            "paid_amount": _amount(raw["Paid_Amount"], f"{prefix}.Paid_Amount"),
+        }
+        if (
+            invoice["project_code"] != snapshot["project_code"]
+            or invoice["due_date"] < invoice["issue_date"]
+            or invoice["paid_amount"] > invoice["amount"]
+        ):
             raise _error(f"{prefix} non coerente")
         if invoice["number"] in invoice_numbers:
             raise _error(f"Invoice_Number duplicato: {invoice['number']}")
         invoice_numbers.add(invoice["number"])
         invoices.append(invoice)
     _equal(snapshot["Orders_JMRP"], snapshot["Orders_Extract"], "Orders_JMRP / Orders_Extract")
-    _equal(snapshot["Orders_Extract"], snapshot["Received"] + snapshot["Open_Order_Commitment"], "ordini / ricevuto + impegni")
-    for snapshot_key, line_key in (("Baseline_Budget", "Baseline_Budget"), ("Operational_Budget", "Operational_Budget"), ("Orders_Extract", "Ordered"), ("Received", "Received"), ("Open_Order_Commitment", "Open_Order_Commitment"), ("Labor", "Labor"), ("Overhead", "Overhead")):
-        _equal(snapshot[snapshot_key], sum(line[line_key] for line in lines), f"snapshot / CONTROL_LINES {snapshot_key}")
+    _equal(
+        snapshot["Orders_Extract"],
+        snapshot["Received"] + snapshot["Open_Order_Commitment"],
+        "ordini / ricevuto + impegni",
+    )
+    for snapshot_key, line_key in (
+        ("Baseline_Budget", "Baseline_Budget"),
+        ("Operational_Budget", "Operational_Budget"),
+        ("Orders_Extract", "Ordered"),
+        ("Received", "Received"),
+        ("Open_Order_Commitment", "Open_Order_Commitment"),
+        ("Labor", "Labor"),
+        ("Overhead", "Overhead"),
+    ):
+        _equal(
+            snapshot[snapshot_key], sum(line[line_key] for line in lines), f"snapshot / CONTROL_LINES {snapshot_key}"
+        )
     return ParsedB1(snapshot, tuple(lines), tuple(invoices))
 
 
@@ -196,17 +276,26 @@ def _one(records: list[Any], key: str):
 
 
 def _upsert_invoice(db: Session, project: Project, source: dict[str, Any]) -> bool:
-    invoice = _one(db.query(Invoice).filter(Invoice.project_id == project.id, Invoice.number == source["number"]).all(), f"fattura {project.code}/{source['number']}")
+    invoice = _one(
+        db.query(Invoice).filter(Invoice.project_id == project.id, Invoice.number == source["number"]).all(),
+        f"fattura {project.code}/{source['number']}",
+    )
     created = invoice is None
     if created:
         invoice = Invoice(project_id=project.id, number=source["number"])
         db.add(invoice)
-    invoice.milestone_name, invoice.issue_date, invoice.due_date = source["milestone"], source["issue_date"], source["due_date"]
+    invoice.milestone_name, invoice.issue_date, invoice.due_date = (
+        source["milestone"],
+        source["issue_date"],
+        source["due_date"],
+    )
     invoice.amount, invoice.paid_amount = float(source["amount"]), float(source["paid_amount"])
     return created
 
 
-def import_b1_control_workbook(content: bytes, db: Session, *, expected_project_code: str | None = None, commit: bool = True) -> dict[str, int]:
+def import_b1_control_workbook(
+    content: bytes, db: Session, *, expected_project_code: str | None = None, commit: bool = True
+) -> dict[str, int]:
     """Validate first, then persist B1 in one rollback-safe transaction."""
     parsed = _parse(content)
     if expected_project_code is not None and parsed.snapshot["project_code"] != expected_project_code:
@@ -219,20 +308,61 @@ def import_b1_control_workbook(content: bytes, db: Session, *, expected_project_
             if project is None:
                 raise _error(f"progetto inesistente: {source['project_code']}")
             captured = datetime.combine(source["snapshot_date"], datetime.min.time())
-            snapshot = _one(db.query(ProjectControlSnapshot).filter(ProjectControlSnapshot.project_id == project.id, ProjectControlSnapshot.captured_at == captured, ProjectControlSnapshot.source_label == source["source_label"]).all(), "snapshot")
+            snapshot = _one(
+                db.query(ProjectControlSnapshot)
+                .filter(
+                    ProjectControlSnapshot.project_id == project.id,
+                    ProjectControlSnapshot.captured_at == captured,
+                    ProjectControlSnapshot.source_label == source["source_label"],
+                )
+                .all(),
+                "snapshot",
+            )
             for invoice in parsed.invoices:
-                _one(db.query(Invoice).filter(Invoice.project_id == project.id, Invoice.number == invoice["number"]).all(), f"fattura {project.code}/{invoice['number']}")
+                _one(
+                    db.query(Invoice)
+                    .filter(Invoice.project_id == project.id, Invoice.number == invoice["number"])
+                    .all(),
+                    f"fattura {project.code}/{invoice['number']}",
+                )
             if snapshot is None:
-                snapshot = ProjectControlSnapshot(project_id=project.id, captured_at=captured, source_label=source["source_label"])
+                snapshot = ProjectControlSnapshot(
+                    project_id=project.id, captured_at=captured, source_label=source["source_label"]
+                )
                 db.add(snapshot)
                 stats["control_snapshots"] = 1
-            for field, value in (("baseline_budget", source["Baseline_Budget"]), ("operational_budget", source["Operational_Budget"]), ("orders_jmrp", source["Orders_JMRP"]), ("orders_extract", source["Orders_Extract"]), ("received", source["Received"]), ("open_order_commitment", source["Open_Order_Commitment"]), ("labor", source["Labor"]), ("overhead", source["Overhead"])):
+            for field, value in (
+                ("baseline_budget", source["Baseline_Budget"]),
+                ("operational_budget", source["Operational_Budget"]),
+                ("orders_jmrp", source["Orders_JMRP"]),
+                ("orders_extract", source["Orders_Extract"]),
+                ("received", source["Received"]),
+                ("open_order_commitment", source["Open_Order_Commitment"]),
+                ("labor", source["Labor"]),
+                ("overhead", source["Overhead"]),
+            ):
                 setattr(snapshot, field, float(value))
             snapshot.note = source["note"]
             db.flush()
             db.execute(delete(ProjectControlLine).where(ProjectControlLine.snapshot_id == snapshot.id))
             for line in parsed.lines:
-                db.add(ProjectControlLine(snapshot_id=snapshot.id, vda_code=line["vda_code"], vda_name=line["vda_name"], analysis_center=line["analysis_center"], baseline_budget=float(line["Baseline_Budget"]), operational_budget=float(line["Operational_Budget"]), ordered=float(line["Ordered"]), received=float(line["Received"]), open_order_commitment=float(line["Open_Order_Commitment"]), labor=float(line["Labor"]), overhead=float(line["Overhead"]), purchases_closed=line["purchases_closed"], source_ref=line["source_ref"]))
+                db.add(
+                    ProjectControlLine(
+                        snapshot_id=snapshot.id,
+                        vda_code=line["vda_code"],
+                        vda_name=line["vda_name"],
+                        analysis_center=line["analysis_center"],
+                        baseline_budget=float(line["Baseline_Budget"]),
+                        operational_budget=float(line["Operational_Budget"]),
+                        ordered=float(line["Ordered"]),
+                        received=float(line["Received"]),
+                        open_order_commitment=float(line["Open_Order_Commitment"]),
+                        labor=float(line["Labor"]),
+                        overhead=float(line["Overhead"]),
+                        purchases_closed=line["purchases_closed"],
+                        source_ref=line["source_ref"],
+                    )
+                )
             stats["control_lines"] = len(parsed.lines)
             db.flush()
             for invoice in parsed.invoices:

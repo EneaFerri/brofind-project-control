@@ -3,8 +3,8 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
-from .control import control_summary
 from .config import settings
+from .control import control_summary
 from .models import Project
 
 LEVELS = {
@@ -91,12 +91,14 @@ def _domain(
     }
     if forecast_level:
         fm = LEVELS[forecast_level]
-        out.update({
-            "forecast_level": forecast_level,
-            "forecast_level_label": fm["label"],
-            "forecast_tone": fm["tone"],
-            "forecast_gaps": forecast_gaps or [],
-        })
+        out.update(
+            {
+                "forecast_level": forecast_level,
+                "forecast_level_label": fm["label"],
+                "forecast_tone": fm["tone"],
+                "forecast_gaps": forecast_gaps or [],
+            }
+        )
     return out
 
 
@@ -132,15 +134,20 @@ def confidence_summary(project: Project, today: date | None = None) -> dict[str,
     today = today or date.today()
     control = control_summary(project)
     dismissed_requirements = {
-        d.decision_key for d in getattr(project, "cockpit_decisions", [])
-        if d.decision_type == "REQUIREMENT_DISPOSITION" and d.status == "ACTIVE" and (d.value or "").upper() == "DISMISSED"
+        d.decision_key
+        for d in getattr(project, "cockpit_decisions", [])
+        if d.decision_type == "REQUIREMENT_DISPOSITION"
+        and d.status == "ACTIVE"
+        and (d.value or "").upper() == "DISMISSED"
     }
     domains: dict[str, dict[str, Any]] = {}
 
     # ECONOMIC — current-state confidence is distinct from forecast confidence.
     if not control:
         domains["ECONOMIC"] = _domain(
-            "ECONOMIC", "INSUFFICIENT", [],
+            "ECONOMIC",
+            "INSUFFICIENT",
+            [],
             ["Snapshot economico strutturato non disponibile."],
             forecast_level="INSUFFICIENT",
             forecast_gaps=["Non esiste una base economica sufficiente per stimare il costo finale."],
@@ -159,9 +166,13 @@ def confidence_summary(project: Project, today: date | None = None) -> dict[str,
 
         material_quality, minor_quality = _material_quality_issues(control)
         if material_quality:
-            gaps.append(f"{len(material_quality)} anomalia/e dati materiale/i possono modificare la lettura economica corrente.")
+            gaps.append(
+                f"{len(material_quality)} anomalia/e dati materiale/i possono modificare la lettura economica corrente."
+            )
         if minor_quality:
-            processing.append(f"{len(minor_quality)} verifiche dati minori da riconciliare; non alterano oggi la lettura economica complessiva.")
+            processing.append(
+                f"{len(minor_quality)} verifiche dati minori da riconciliare; non alterano oggi la lettura economica complessiva."
+            )
 
         level = "HIGH" if not gaps else "MEDIUM"
 
@@ -169,11 +180,16 @@ def confidence_summary(project: Project, today: date | None = None) -> dict[str,
         if control["uncommitted_budget"] > max(25000.0, control["operational_budget"] * 0.20):
             forecast_gaps.append("Quota rilevante del budget non è ancora coperta da costi/impegni noti.")
         if control["procurement"]["open_or_unknown_count"] or control["procurement"]["not_started_count"]:
-            forecast_gaps.append("Il procurement residuo non è ancora sufficientemente consolidato per stimare il costo finale.")
+            forecast_gaps.append(
+                "Il procurement residuo non è ancora sufficientemente consolidato per stimare il costo finale."
+            )
         forecast_level = "MEDIUM" if forecast_gaps else "HIGH"
 
         domains["ECONOMIC"] = _domain(
-            "ECONOMIC", level, strengths, gaps,
+            "ECONOMIC",
+            level,
+            strengths,
+            gaps,
             processing_backlog=processing,
             forecast_level=forecast_level,
             forecast_gaps=forecast_gaps,
@@ -182,7 +198,9 @@ def confidence_summary(project: Project, today: date | None = None) -> dict[str,
     # PROCUREMENT — timing risk is project health, not evidence confidence.
     if not control or control["procurement"]["direct_vda_count"] == 0:
         domains["PROCUREMENT"] = _domain(
-            "PROCUREMENT", "INSUFFICIENT", [],
+            "PROCUREMENT",
+            "INSUFFICIENT",
+            [],
             ["Mappa procurement strutturata non disponibile."],
         )
     else:
@@ -201,12 +219,16 @@ def confidence_summary(project: Project, today: date | None = None) -> dict[str,
                 f"({p['not_started_count']} VdA senza ordini identificati; {p['open_or_unknown_count']} non dichiarate concluse)."
             )
         pending_scope = [
-            r for r in getattr(project, "requirements", [])
-            if r.status == "TO_VERIFY" and r.requirement_key not in dismissed_requirements
+            r
+            for r in getattr(project, "requirements", [])
+            if r.status == "TO_VERIFY"
+            and r.requirement_key not in dismissed_requirements
             and (r.source_kind != "ENGINEERING" or settings.technical_document_findings_enabled)
         ]
         if pending_scope:
-            gaps.append("Lo scope residuo contiene requisiti/finding ancora da validare prima di poter dire con certezza cosa resta da acquistare.")
+            gaps.append(
+                "Lo scope residuo contiene requisiti/finding ancora da validare prima di poter dire con certezza cosa resta da acquistare."
+            )
         level = "MEDIUM" if gaps else "HIGH"
         domains["PROCUREMENT"] = _domain("PROCUREMENT", level, strengths, gaps, processing_backlog=processing)
 
@@ -214,7 +236,10 @@ def confidence_summary(project: Project, today: date | None = None) -> dict[str,
     orders = list(getattr(project, "customer_orders", []) or [])
     if not orders:
         domains["CONTRACT"] = _domain(
-            "CONTRACT", "INSUFFICIENT", [], ["Pacchetto contrattuale non disponibile."],
+            "CONTRACT",
+            "INSUFFICIENT",
+            [],
+            ["Pacchetto contrattuale non disponibile."],
         )
     else:
         strengths: list[str] = []
@@ -229,8 +254,10 @@ def confidence_summary(project: Project, today: date | None = None) -> dict[str,
         if formalized_changes:
             strengths.append(f"{len(formalized_changes)} variazione/i formalizzata/e con ordine cliente.")
         pending_scope = [
-            r for r in getattr(project, "requirements", [])
-            if r.status == "TO_VERIFY" and r.requirement_key not in dismissed_requirements
+            r
+            for r in getattr(project, "requirements", [])
+            if r.status == "TO_VERIFY"
+            and r.requirement_key not in dismissed_requirements
             and (r.source_kind != "ENGINEERING" or settings.technical_document_findings_enabled)
         ]
         if pending_scope:
@@ -239,9 +266,14 @@ def confidence_summary(project: Project, today: date | None = None) -> dict[str,
         if unformalized:
             gaps.append(f"{len(unformalized)} variazione/i non risultano ancora formalizzate.")
 
-        required_contract_keys = {"effective_date", "delivery_date", "payment_terms", "incoterm", "penalties"} if project.code == "9028" else set()
+        required_contract_keys = (
+            {"effective_date", "delivery_date", "payment_terms", "incoterm", "penalties"}
+            if project.code == "9028"
+            else set()
+        )
         frozen_contract_keys = {
-            d.decision_key for d in getattr(project, "cockpit_decisions", [])
+            d.decision_key
+            for d in getattr(project, "cockpit_decisions", [])
             if d.decision_type == "CONTRACT_CONDITION" and d.status == "FROZEN"
         }
         missing_contract_keys = required_contract_keys - frozen_contract_keys
@@ -250,7 +282,9 @@ def confidence_summary(project: Project, today: date | None = None) -> dict[str,
                 f"{len(missing_contract_keys)} condizioni sono già nel dossier ma devono ancora essere estratte/validate nella Contract Baseline del cockpit."
             )
         elif missing_contract_keys:
-            gaps.append(f"{len(missing_contract_keys)} condizioni contrattuali chiave non sono ancora disponibili in forma affidabile.")
+            gaps.append(
+                f"{len(missing_contract_keys)} condizioni contrattuali chiave non sono ancora disponibili in forma affidabile."
+            )
 
         if not complete_orders:
             level = "LOW" if gaps else "MEDIUM"
@@ -264,8 +298,12 @@ def confidence_summary(project: Project, today: date | None = None) -> dict[str,
     milestones = list(getattr(project, "milestones", []) or [])
     if not milestones:
         domains["SCHEDULE"] = _domain(
-            "SCHEDULE", "INSUFFICIENT", [],
-            ["Planning operativo corrente / milestone strutturate non disponibili: non è possibile valutare con affidabilità i tempi."],
+            "SCHEDULE",
+            "INSUFFICIENT",
+            [],
+            [
+                "Planning operativo corrente / milestone strutturate non disponibili: non è possibile valutare con affidabilità i tempi."
+            ],
         )
     else:
         strengths = [f"{len(milestones)} milestone strutturate disponibili."]
@@ -280,13 +318,23 @@ def confidence_summary(project: Project, today: date | None = None) -> dict[str,
     # TECHNICAL — having scope evidence is positive; only unresolved current-state items reduce confidence.
     tech_issues = [i for i in getattr(project, "issues", []) if i.category == "TECHNICAL" and i.status == "OPEN"]
     requirements = list(getattr(project, "requirements", []) or [])
-    pending_engineering = [
-        r for r in requirements
-        if r.source_kind == "ENGINEERING" and r.status == "TO_VERIFY" and r.requirement_key not in dismissed_requirements
-    ] if settings.technical_document_findings_enabled else []
+    pending_engineering = (
+        [
+            r
+            for r in requirements
+            if r.source_kind == "ENGINEERING"
+            and r.status == "TO_VERIFY"
+            and r.requirement_key not in dismissed_requirements
+        ]
+        if settings.technical_document_findings_enabled
+        else []
+    )
     if not tech_issues and not requirements and project.technical_status not in ("CLOSED",):
         domains["TECHNICAL"] = _domain(
-            "TECHNICAL", "INSUFFICIENT", [], ["Evidenze tecniche sufficienti non disponibili."],
+            "TECHNICAL",
+            "INSUFFICIENT",
+            [],
+            ["Evidenze tecniche sufficienti non disponibili."],
         )
     else:
         strengths: list[str] = []
@@ -312,7 +360,9 @@ def confidence_summary(project: Project, today: date | None = None) -> dict[str,
         guidance = RECOVERY_GUIDANCE[d["key"]]
         d["recovery_owner"] = guidance["owner"]
         d["recovery_actions"] = guidance["actions"]
-        d["target_level_label"] = "Media" if d["level"] in ("LOW", "INSUFFICIENT") else ("Alta" if d["level"] == "MEDIUM" else "Mantieni")
+        d["target_level_label"] = (
+            "Media" if d["level"] in ("LOW", "INSUFFICIENT") else ("Alta" if d["level"] == "MEDIUM" else "Mantieni")
+        )
 
     # Overall confidence is not the minimum domain. One weak domain should be visible without
     # making the whole project look globally unreliable when the other domains are well supported.

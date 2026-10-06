@@ -32,7 +32,7 @@ Un livello inferiore non ridefinisce silenziosamente uno superiore. Se un mockup
 
 ## Debiti noti
 
-- **AD-001**: autorizzazione del ciclo di vita lato server incompleta (es. `POST /api/actions/{id}/status` consente `CLOSED` saltando la validazione).
+- **AD-001**: autorizzazione del ciclo di vita lato server incompleta (es. `POST /api/actions/{id}/status` consente `CLOSED` saltando la validazione). Si chiude nella slice S1.
 - **AD-002**: il re-import di uno snapshot con la stessa identità può alterare la storia.
 - Eccezioni hard-coded per la commessa `9028` in `app/confidence.py` e `app/serializers.py`.
 
@@ -49,8 +49,13 @@ UI in italiano (eccetto le etichette di navigazione canoniche del Shared UI Shel
 ```bash
 ./start_demo.sh                       # macOS/Linux, Python 3.13, runtime demo su :8080
 start_demo.bat                        # Windows
-.venv/bin/python -m pip install -r requirements-dev.txt
+.venv/bin/python -m pip install -r requirements.txt -r requirements-dev.txt
 .venv/bin/python -m pytest            # usa DB isolato sotto data/test
+.venv/bin/ruff check . && .venv/bin/ruff format --check .
+BROFIND_RUNTIME=development .venv/bin/alembic revision --autogenerate -m "..."   # ogni modifica di schema
 ```
+
+- Codice: router in `app/routers/`, ora corrente con `app.clock.utcnow()`, versione solo in `pyproject.toml`.
+- Fine riga LF (vedi `.gitattributes`); `demo/b1/` non va mai modificato (verificato da `SHA256SUMS`).
 
 Runtime e database: `docs/DEMO_RUNTIME.md`. Python supportato: **3.13.x** (non 3.14).

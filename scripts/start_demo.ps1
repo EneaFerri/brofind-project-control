@@ -111,6 +111,7 @@ import pypdf
 import docx
 import extract_msg
 import sqlalchemy
+import alembic
 import uvicorn
 "@
 

@@ -59,7 +59,12 @@ def test_acquisition_project_has_no_placeholder_derived_alert_or_exposure():
         assert all(value == 0 for key, value in payload["exposure"].items() if key not in {"ld_milestones"})
         with SessionLocal() as db:
             project = db.query(Project).filter_by(code="CS4-NO-ALERT").one()
-            assert db.query(Alert).filter(Alert.project_id == project.id, Alert.status.in_(["OPEN", "ACKNOWLEDGED"])).count() == 0
+            assert (
+                db.query(Alert)
+                .filter(Alert.project_id == project.id, Alert.status.in_(["OPEN", "ACKNOWLEDGED"]))
+                .count()
+                == 0
+            )
 
 
 def test_creation_validation_rejects_missing_and_duplicate_values():

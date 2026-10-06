@@ -1,0 +1,12 @@
+# Sorgenti e documenti con fine riga LF; script Windows con CRLF.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+*.png binary
+*.pdf binary
+*.xlsx binary
+*.db binary
+
+# Caso demo congelato: file verificati da SHA256SUMS, mai normalizzati.
+demo/b1/** -text

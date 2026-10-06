@@ -3,7 +3,6 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 from .config import settings
 
-
 if settings.database_path is not None:
     settings.database_path.parent.mkdir(parents=True, exist_ok=True)
 

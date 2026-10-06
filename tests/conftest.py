@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 
-
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 TEST_DATA_ROOT = (REPOSITORY_ROOT / "data" / "test").resolve()
 TEST_DATABASE_PATH = (TEST_DATA_ROOT / f"brofind_test_{os.getpid()}.db").resolve()
@@ -29,4 +28,3 @@ def pytest_sessionfinish(session, exitstatus):
         engine.dispose()
     finally:
         TEST_DATABASE_PATH.unlink(missing_ok=True)
-

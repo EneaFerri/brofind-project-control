@@ -1,7 +1,9 @@
 from sqlalchemy import Boolean, Column, Date, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
-from datetime import datetime
+
+from .clock import utcnow
 from .db import Base
+
 
 class User(Base):
     __tablename__ = "users"
@@ -10,6 +12,7 @@ class User(Base):
     display_name = Column(String(120), nullable=False)
     role = Column(String(30), nullable=False)  # DIRECTOR | SALES | PM | ADMIN
     owner_key = Column(String(120), nullable=True)
+
 
 class Project(Base):
     __tablename__ = "projects"
@@ -25,7 +28,7 @@ class Project(Base):
     description = Column(String(255), nullable=True)
     delivery_window = Column(String(30), nullable=False, default="UNKNOWN")  # UNKNOWN | FAR | NEAR | IMMINENT
     delivery_context = Column(String(255), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
     milestones = relationship("Milestone", cascade="all, delete-orphan", back_populates="project")
     budget_lines = relationship("BudgetLine", cascade="all, delete-orphan", back_populates="project")
@@ -55,6 +58,7 @@ class CockpitDecision(Base):
     Source/master data remain read-only. This table stores only reviewed interpretations,
     classifications and operational decisions made inside the cockpit.
     """
+
     __tablename__ = "cockpit_decisions"
     __table_args__ = (UniqueConstraint("project_id", "decision_type", "decision_key", name="uq_cockpit_decision"),)
     id = Column(Integer, primary_key=True)
@@ -66,8 +70,8 @@ class CockpitDecision(Base):
     note = Column(Text, nullable=True)
     source_ref = Column(String(180), nullable=True)
     created_by = Column(String(120), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
     project = relationship("Project", back_populates="cockpit_decisions")
 
 
@@ -125,6 +129,7 @@ class Milestone(Base):
     ld_rate_weekly_pct = Column(Float, default=0)
     project = relationship("Project", back_populates="milestones")
 
+
 class BudgetLine(Base):
     __tablename__ = "budget_lines"
     id = Column(Integer, primary_key=True)
@@ -136,6 +141,7 @@ class BudgetLine(Base):
     etc = Column(Float, default=0)
     etc_source = Column(String(30), default="MANUAL")
     project = relationship("Project", back_populates="budget_lines")
+
 
 class Invoice(Base):
     __tablename__ = "invoices"
@@ -149,6 +155,7 @@ class Invoice(Base):
     paid_amount = Column(Float, nullable=False, default=0)
     project = relationship("Project", back_populates="invoices")
 
+
 class Payment(Base):
     __tablename__ = "payments"
     id = Column(Integer, primary_key=True)
@@ -157,6 +164,7 @@ class Payment(Base):
     payment_date = Column(Date, nullable=False)
     amount = Column(Float, nullable=False)
     project = relationship("Project", back_populates="payments")
+
 
 class Action(Base):
     __tablename__ = "actions"
@@ -177,6 +185,7 @@ class Action(Base):
     project = relationship("Project", back_populates="actions")
     messages = relationship("ActionMessage", cascade="all, delete-orphan", back_populates="action")
 
+
 class ActionMessage(Base):
     __tablename__ = "action_messages"
     id = Column(Integer, primary_key=True)
@@ -184,8 +193,9 @@ class ActionMessage(Base):
     author = Column(String(120), nullable=False)
     body = Column(Text, nullable=False)
     source = Column(String(30), nullable=False, default="MANUAL")
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
     action = relationship("Action", back_populates="messages")
+
 
 class Issue(Base):
     __tablename__ = "issues"
@@ -199,6 +209,7 @@ class Issue(Base):
     due_date = Column(Date, nullable=True)
     source_ref = Column(String(180), nullable=True)
     project = relationship("Project", back_populates="issues")
+
 
 class Communication(Base):
     __tablename__ = "communications"
@@ -217,6 +228,7 @@ class Communication(Base):
     source_ref = Column(String(160), nullable=True)
     project = relationship("Project", back_populates="communications")
 
+
 class ChangeRequest(Base):
     __tablename__ = "change_requests"
     id = Column(Integer, primary_key=True)
@@ -229,6 +241,7 @@ class ChangeRequest(Base):
     work_started = Column(Boolean, default=False)
     source_ref = Column(String(180), nullable=True)
     project = relationship("Project", back_populates="changes")
+
 
 class Alert(Base):
     __tablename__ = "alerts"
@@ -246,8 +259,8 @@ class Alert(Base):
     source_ref = Column(String(180), nullable=True)
     confidence = Column(Float, nullable=True)
     data_status = Column(String(30), nullable=False, default="CALCULATED")
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
     project = relationship("Project", back_populates="alerts")
 
 
@@ -275,8 +288,8 @@ class AgentFinding(Base):
     applied_ref = Column(String(120), nullable=True)
     applied_summary = Column(Text, nullable=True)
     applied_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
     project = relationship("Project", back_populates="agent_findings")
     communication = relationship("Communication")
 
@@ -290,8 +303,8 @@ class AgentRun(Base):
     messages_analyzed = Column(Integer, nullable=False, default=0)
     findings_created = Column(Integer, nullable=False, default=0)
     findings_updated = Column(Integer, nullable=False, default=0)
-    started_at = Column(DateTime, default=datetime.utcnow)
-    completed_at = Column(DateTime, default=datetime.utcnow)
+    started_at = Column(DateTime, default=utcnow)
+    completed_at = Column(DateTime, default=utcnow)
     project = relationship("Project", back_populates="agent_runs")
 
 
@@ -299,7 +312,7 @@ class ProjectControlSnapshot(Base):
     __tablename__ = "project_control_snapshots"
     id = Column(Integer, primary_key=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
-    captured_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    captured_at = Column(DateTime, nullable=False, default=utcnow)
     source_label = Column(String(160), nullable=False, default="GALILEO")
     baseline_budget = Column(Float, nullable=False, default=0)
     operational_budget = Column(Float, nullable=False, default=0)
@@ -359,8 +372,8 @@ class ProjectSourceFile(Base):
     size_bytes = Column(Integer, nullable=False)
     modified_at = Column(DateTime, nullable=False)
     sha256 = Column(String(64), nullable=False)
-    first_seen_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-    last_seen_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    first_seen_at = Column(DateTime, nullable=False, default=utcnow)
+    last_seen_at = Column(DateTime, nullable=False, default=utcnow)
     is_present = Column(Boolean, nullable=False, default=True)
     change_status = Column(String(20), nullable=False, default="NEW")  # NEW | UNCHANGED | MODIFIED | MISSING
     project = relationship("Project", back_populates="source_files")
@@ -369,6 +382,7 @@ class ProjectSourceFile(Base):
 
 class ProjectSourceImport(Base):
     """Outcome of a source processing attempt, reusable by every Source Center adapter."""
+
     __tablename__ = "project_source_imports"
     id = Column(Integer, primary_key=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
@@ -377,14 +391,17 @@ class ProjectSourceImport(Base):
     source_hash = Column(String(64), nullable=False)
     processor = Column(String(120), nullable=False)
     status = Column(String(20), nullable=False)  # SUCCESS | ERROR
-    processed_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    processed_at = Column(DateTime, nullable=False, default=utcnow)
     error_message = Column(Text, nullable=True)
     project = relationship("Project", back_populates="source_imports")
     source_file = relationship("ProjectSourceFile", back_populates="imports")
 
+
 class ProjectSourceContent(Base):
     __tablename__ = "project_source_contents"
-    __table_args__ = (UniqueConstraint("project_id", "source_file_id", "source_hash", name="uq_project_source_content_version"),)
+    __table_args__ = (
+        UniqueConstraint("project_id", "source_file_id", "source_hash", name="uq_project_source_content_version"),
+    )
     id = Column(Integer, primary_key=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
     source_file_id = Column(Integer, ForeignKey("project_source_files.id"), nullable=False)
@@ -393,13 +410,16 @@ class ProjectSourceContent(Base):
     content_type = Column(String(40), nullable=False)
     extracted_text = Column(Text, nullable=False)
     metadata_json = Column(Text, nullable=False, default="{}")
-    extracted_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    extracted_at = Column(DateTime, nullable=False, default=utcnow)
     project = relationship("Project", back_populates="source_contents")
     source_file = relationship("ProjectSourceFile")
 
+
 class ProjectExtractedField(Base):
     __tablename__ = "project_extracted_fields"
-    __table_args__ = (UniqueConstraint("project_id", "source_content_id", "field_key", name="uq_project_extracted_field"),)
+    __table_args__ = (
+        UniqueConstraint("project_id", "source_content_id", "field_key", name="uq_project_extracted_field"),
+    )
     id = Column(Integer, primary_key=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
     source_content_id = Column(Integer, ForeignKey("project_source_contents.id"), nullable=False)
@@ -410,7 +430,7 @@ class ProjectExtractedField(Base):
     corrected_value = Column(Text, nullable=True)
     operational_value = Column(Text, nullable=True)
     source_ref = Column(String(220), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
     project = relationship("Project", back_populates="extracted_fields")
     source_content = relationship("ProjectSourceContent")

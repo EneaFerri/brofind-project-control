@@ -29,8 +29,16 @@ def test_rejects_non_text_pdf_and_reads_eml(monkeypatch):
     eml = b"From: sender@example.com\nTo: recipient@example.com\nCc: cc@example.com\nSubject: Test\nDate: Tue, 01 Sep 2026 10:00:00 +0000\nMIME-Version: 1.0\nContent-Type: text/plain\n\nBody text"
     email = read_source_content(eml, "message.eml", "OUTLOOK")
     assert email.content_kind == "EMAIL" and '"sender": "sender@example.com"' in email.metadata_json
+
     class FakeMessage:
-        sender = "sender@example.com"; to = "recipient@example.com"; cc = "cc@example.com"; date = "2026-09-01"; subject = "MSG"; body = "MSG body"; attachments = []
+        sender = "sender@example.com"
+        to = "recipient@example.com"
+        cc = "cc@example.com"
+        date = "2026-09-01"
+        subject = "MSG"
+        body = "MSG body"
+        attachments = []
+
     monkeypatch.setattr(readers, "Message", lambda _: FakeMessage())
     msg = read_source_content(b"msg", "message.msg", "OUTLOOK")
     assert msg.content_type == "OUTLOOK_EMAIL" and msg.extracted_text == "MSG body"
