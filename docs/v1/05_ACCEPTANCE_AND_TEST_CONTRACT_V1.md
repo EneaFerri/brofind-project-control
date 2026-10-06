@@ -53,7 +53,7 @@ Restano veri gli invarianti esistenti:
 - Evidenza: screenshot della schermata reale affiancato al mockup, allegato alla PR.
 - **Approvazione umana esplicita** prima della chiusura della slice.
 
-## Gate 7 — Pilota reale Brofind (prima della v1.0)
+## Gate 7 — Pilota reale Brofind (prima del rilascio di accettazione V1)
 Un piccolo insieme di commesse reali (in ambiente aziendale, mai nel repository) che copra: commessa sana · scostamento economico precoce · rischio milestone contrattuale · item di procurement prima e dopo l'ordine · forecast fornitore scaduto · decisione tecnica in attesa del cliente · documento mancante rilevante per un gate · evento di fatturazione maturato non allineato in Galileo · ritardo incassi vs avanzamento · Change Item con esposizione economica · Attività completata con condizione ancora presente.
 **PASS** se gli utenti confermano che il Cockpit mostra informazioni di controllo utili prima o in modo più affidabile del processo attuale, **senza** data entry duplicato.
 

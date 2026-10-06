@@ -3,26 +3,26 @@
 **Stato:** PROPOSTA — nessuna slice parte senza approvazione esplicita (A22).
 **Data:** 2026-10-06
 
-Migrazione da v0.3.8.1 a **v1.0** per slice verticali: ognuna porta modello, regole, proiezione, schermata e test, e rispetta `05_ACCEPTANCE_AND_TEST_CONTRACT_V1.md`.
+Migrazione da v0.3.8.1 al Cockpit V1 per slice verticali (interfaccia già rilasciata in **v1.0.0**): ognuna porta modello, regole, proiezione, schermata e test, e rispetta `05_ACCEPTANCE_AND_TEST_CONTRACT_V1.md`.
 
 ## Sequenza
 
 | Slice | Contenuto | Dipende da | Release |
 |---|---|---|---|
 | **S0** Pulizia pre-push | vedi sotto | — | (nessun tag; poi primo push) |
-| **S1** Identità e permessi | ADR-004/005: `User`, `Role`, `Permission`, `RoleAssignment`, `Department`, DevLoginProvider, dipendenza `require()`, matrice test ruoli × endpoint; chiude AD-001 | S0 | v0.4.0 |
-| **S2** Shell e design system ✅ *anticipata in v0.4.0, prima di S1* | layout condiviso (sidebar, header commessa, nav di commessa, drawer AI vuoto), design token dai mockup, componenti (semaforo, badge stato, KPI, ciambella, tabella ordinabile, pannello laterale), asset locali (htmx, Chart.js), registro domini con stato `Non ancora disponibile` | S1 | v0.4.0 |
-| **S3** Portfolio + Overview | `MonitoringView` comune (ADR-007), Attention per dominio con deduplica e cause comuni, fasi e stato commessa (archiviazione), ordinamento senza score, Principale esposizione, Prossimo gate (`N/D` finché manca S7); ricalcolo su import/evento invece che su GET | S2 | v0.5.0 |
-| **S4** Economics | snapshot immutabili e storici (AD-002), forecast con metodologia configurabile + conferma, Economic Result, scostamenti con causa, varianti → Change Item (parte economica); rimozione eccezioni 9028 | S3 | v0.6.0 |
-| **S5** Billing & Payment | Billing Event da contratto (riusa review campi B1), collegamento eventi ↔ fatture Galileo, tolleranze, KPI maturato/fatturato/incassato/esposizione | S3, S7 parziale | v0.6.0 |
-| **S6** Procurement | Procurement Item, stadi, need/promise/forecast/actual, lead time con override, matching ordini Galileo con conferma; vista per VdA come aggregato | S3, S4 | v0.7.0 |
-| **S7** Master Planner | Milestone V1, fasi, readiness, condizioni e Control Checkpoint, propagazione "da verificare"; collega Procurement/Documents/Technical/Billing | S3 | v0.7.0 |
-| **S8** Documents | Document Item, Minimum Document Set da template, evidenze dalla cartella commessa, stati derivati | S7 | v0.8.0 |
-| **S9** Technical | Technical Decision/Checkpoint, Outcome, segnali di allineamento | S7 | v0.8.0 |
-| **S10** Controllo operativo | Criticità, Attività V1, Outcome, Conversazioni, Change Item completo, Storico di commessa | S3; **freeze mancanti (OD-01)** | v0.9.0 |
-| **S11** Drawer AI | provider di estrazione, drawer con citazione fonti, tracciamento proposte; modello linguistico secondo OD-08 | S10 | v0.9.0 |
-| **S12** Esercizio in rete aziendale | runtime `production`, PostgreSQL, EntraIdProvider, HTTPS, backup, guida di installazione | S1 | v0.9.x |
-| **UAT** | dataset demo coerente su 8 superfici, pilota reale (Gate 7), verifica visiva finale | tutte | **v1.0.0** |
+| **S1** Identità e permessi | ADR-004/005: `User`, `Role`, `Permission`, `RoleAssignment`, `Department`, DevLoginProvider, dipendenza `require()`, matrice test ruoli × endpoint; chiude AD-001 | S0 | v1.1.0 |
+| **S2** Shell e design system ✅ *anticipata, rilasciata in v1.0.0* | layout condiviso (sidebar, header commessa, nav di commessa, drawer AI vuoto), design token dai mockup, componenti (semaforo, badge stato, KPI, ciambella, tabella ordinabile, pannello laterale), nessuna libreria frontend esterna, registro domini con stato `Non ancora disponibile` | S1 | v1.0.0 |
+| **S3** Portfolio + Overview | `MonitoringView` comune (ADR-007), Attention per dominio con deduplica e cause comuni, fasi e stato commessa (archiviazione), ordinamento senza score, Principale esposizione, Prossimo gate (`N/D` finché manca S7); ricalcolo su import/evento invece che su GET | S2 | v1.2.0 |
+| **S4** Economics | snapshot immutabili e storici (AD-002), forecast con metodologia configurabile + conferma, Economic Result, scostamenti con causa, varianti → Change Item (parte economica); rimozione eccezioni 9028 | S3 | v1.3.0 |
+| **S5** Billing & Payment | Billing Event da contratto (riusa review campi B1), collegamento eventi ↔ fatture Galileo, tolleranze, KPI maturato/fatturato/incassato/esposizione | S3, S7 parziale | v1.3.0 |
+| **S6** Procurement | Procurement Item, stadi, need/promise/forecast/actual, lead time con override, matching ordini Galileo con conferma; vista per VdA come aggregato | S3, S4 | v1.4.0 |
+| **S7** Master Planner | Milestone V1, fasi, readiness, condizioni e Control Checkpoint, propagazione "da verificare"; collega Procurement/Documents/Technical/Billing | S3 | v1.4.0 |
+| **S8** Documents | Document Item, Minimum Document Set da template, evidenze dalla cartella commessa, stati derivati | S7 | v1.5.0 |
+| **S9** Technical | Technical Decision/Checkpoint, Outcome, segnali di allineamento | S7 | v1.5.0 |
+| **S10** Controllo operativo | Criticità, Attività V1, Outcome, Conversazioni, Change Item completo, Storico di commessa | S3; **freeze mancanti (OD-01)** | v1.6.0 |
+| **S11** Drawer AI | provider di estrazione, drawer con citazione fonti, tracciamento proposte; modello linguistico secondo OD-08 | S10 | v1.6.0 |
+| **S12** Esercizio in rete aziendale | runtime `production`, PostgreSQL, EntraIdProvider, HTTPS, backup, guida di installazione | S1 | v1.7.0 |
+| **UAT** | dataset demo coerente su 8 superfici, pilota reale (Gate 7), verifica visiva finale | tutte | rilascio di accettazione |
 
 **Stato al 2026-10-06:** S0 completata; la grafica V1 (S2) è applicata a tutte le 8 superfici più Criticità/Attività/Conversazioni/Storico usando il modello dati v0.3.8.1. Ciò che il modello non fornisce ancora è mostrato come N/D: elenco in [`IMPLEMENTATION_GAPS.md`](IMPLEMENTATION_GAPS.md).
 

@@ -1,6 +1,6 @@
 # Implementation gaps — interfaccia V1 su modello v0.3.8.1
 
-**Data:** 2026-10-06 · **Release:** v0.4.0 (shell e superfici V1 sui dati esistenti)
+**Data:** 2026-10-06 · **Release:** v1.0.0 (shell e superfici V1 sui dati esistenti)
 
 La grafica delle 8 superfici canoniche è applicata. Dove il modello dati non fornisce ancora il dato richiesto dal mockup, la struttura della schermata resta invariata e il valore è mostrato come `N/D` / `Non ancora disponibile` (regola `03_UI_GOVERNANCE` §4). Ogni gap si chiude nella slice indicata.
 

@@ -5,7 +5,7 @@ Cockpit di controllo commesse Brofind: **Project Monitoring, Control and Coordin
 ## Stato
 
 - Baseline: **v0.3.8.1** (tag `v0.3.8.1-baseline`) — FastAPI + SQLAlchemy + Jinja2, SQLite.
-- Corrente: **v0.4.0** — interfaccia V1 sul modello v0.3.8.1; gap in `docs/v1/IMPLEMENTATION_GAPS.md`.
+- Corrente: **v1.0.0** (tag `v1.0.0`) — interfaccia V1 sul modello v0.3.8.1; gap in `docs/v1/IMPLEMENTATION_GAPS.md`. Le slice successive escono come `v1.x`.
 - Obiettivo in corso: migrazione a **Usable Control Cockpit V1** secondo `docs/authority/` e i mockup `docs/visuals/`.
 - Target di esercizio: applicazione su rete aziendale per utenti brofind.com, con accesso per ruolo (ruoli configurabili, autorizzazione lato server).
 

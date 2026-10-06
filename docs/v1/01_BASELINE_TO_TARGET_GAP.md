@@ -3,7 +3,7 @@
 **Stato:** PROPOSTA — da approvare
 **Data:** 2026-10-06
 **Baseline:** v0.3.8.1 + Demo B1 (tag `v0.3.8.1-baseline`, commit `b25995f`)
-**Target:** Usable Control Cockpit V1 (`docs/authority/01_…PRODUCT_SCOPE_FREEZE`) con grafica degli 8 mockup canonici (`docs/visuals/`). Rilascio come **v1.0**.
+**Target:** Usable Control Cockpit V1 (`docs/authority/01_…PRODUCT_SCOPE_FREEZE`) con grafica degli 8 mockup canonici (`docs/visuals/`). Interfaccia rilasciata come **v1.0.0**; modello dati completato nelle release `v1.x`.
 
 Corrisponde alle attività A19 (baseline bootstrap) e A20 (gap analysis) della checklist Astra.
 

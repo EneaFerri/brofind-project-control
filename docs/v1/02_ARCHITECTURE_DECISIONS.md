@@ -9,13 +9,13 @@ Le ADR riguardano scelte **tecniche**. Non modificano la semantica di prodotto, 
 
 ## ADR-001 — Numerazione delle versioni
 
-- **Contesto:** la baseline è v0.3.8.1. La v1.0 sarà la prima versione con la grafica dei mockup canonici e il modello V1.
-- **Decisione proposta:**
-  - `v0.3.8.1-baseline`: punto di partenza (già taggato).
-  - `v0.4.x … v0.9.x`: release intermedie della migrazione, una per gruppo di slice (vedi `06_IMPLEMENTATION_PLAN_V1.md`).
-  - `v1.0.0`: Cockpit V1 completo sulle 8 superfici, accettato secondo `05_ACCEPTANCE_AND_TEST_CONTRACT_V1.md`.
-  - Versione unica in `pyproject.toml`; `app/main.py` la legge da lì (oggi è duplicata).
-- **Conseguenze:** nessun tag `v1.x` prima del rilascio V1.
+- **Stato:** DECISA dal Product Owner il 2026-10-06.
+- **Decisione:**
+  - `v0.3.8.1-baseline`: punto di partenza.
+  - `v1.0.0`: prima versione con l'interfaccia dei mockup canonici (shell condivisa e 8 superfici) sul modello dati v0.3.8.1; i dati non ancora disponibili sono N/D (`IMPLEMENTATION_GAPS.md`).
+  - `v1.x`: una minor per gruppo di slice che completa modello dati e regole V1 (vedi `06_IMPLEMENTATION_PLAN_V1.md`); patch per correzioni.
+  - Il rilascio di accettazione del Cockpit V1 completo (Gate 7) avrà un numero da definire al momento.
+  - Versione unica in `pyproject.toml`, letta dall'app.
 
 ## ADR-002 — Stack applicativo
 

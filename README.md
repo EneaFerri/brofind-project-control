@@ -4,7 +4,7 @@ Cockpit di controllo commesse per Brofind: un livello di **monitoraggio, control
 
 Il Cockpit legge le fonti ufficiali, confronta ciò che dovrebbe essere vero oggi con ciò che risulta vero, segnala dove serve attenzione e coordina le eccezioni. Non sostituisce ERP, acquisti, progettazione, EDMS o contabilità.
 
-> **Stato:** `v0.4.0` — interfaccia V1 (shell condivisa e 8 superfici dei mockup) sul modello dati v0.3.8.1, in migrazione verso il **Cockpit V1** (rilascio `v1.0`). Elementi non ancora alimentati: [`docs/v1/IMPLEMENTATION_GAPS.md`](docs/v1/IMPLEMENTATION_GAPS.md).
+> **Stato:** `v1.0.0` — interfaccia V1 (shell condivisa e 8 superfici dei mockup) sul modello dati v0.3.8.1. Le prossime release `v1.x` completano il modello dati V1 superficie per superficie. Elementi non ancora alimentati: [`docs/v1/IMPLEMENTATION_GAPS.md`](docs/v1/IMPLEMENTATION_GAPS.md).
 > Piano e specifiche: [`docs/v1/`](docs/v1/README.md) · Autorità di prodotto: [`docs/authority/`](docs/authority/) · Mockup canonici: [`docs/visuals/`](docs/visuals/)
 
 ## Principi
