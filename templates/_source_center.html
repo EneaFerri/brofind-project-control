@@ -1,0 +1,35 @@
+<section class="panel sources-panel" id="sources">
+  <div class="panel-head source-center-head">
+    <div><h2>Fonti dati</h2><p>La scansione rileva i file disponibili; l'import acquisisce soltanto i dati della fonte selezionata.</p></div>
+    <form method="post" action="/project/{{project.code}}/sources/refresh"><button class="button" type="submit">Aggiorna fonti</button></form>
+  </div>
+  {% if sources_message %}<div class="source-update-message">{{sources_message}}</div>{% endif %}
+  <div class="source-cards">
+    {% for source in project.sources %}
+    <article class="source-card">
+      <h3>{{source.label}}</h3>
+      {% if source.type == 'GALILEO' %}
+        {% set galileo_import = source['import'] %}
+        <strong>{{galileo_import.label}}</strong>
+        <small>Ultima scansione: {{source.last_scanned_label}}</small>
+        {% if source.files %}<ul class="source-file-list">{% for file in source.files %}<li><span>{{file.name}}</span></li>{% endfor %}</ul>{% endif %}
+        {% if galileo_import.status == 'IMPORTED' %}
+          <small>Ultimo import riuscito: {{galileo_import.last_imported_label}}</small>
+          {% if project.control %}<div class="source-update-message"><strong>Dati Galileo importati correttamente</strong><br>Budget operativo € {{'{:,.0f}'.format(project.control.operational_budget)}} · Ordini € {{'{:,.0f}'.format(project.control.orders_extract)}} · Costi assorbiti € {{'{:,.0f}'.format(project.control.actual_total)}} · Fatture aperte € {{'{:,.0f}'.format(project.finance.invoiced - project.finance.collected)}}</div>{% endif %}
+        {% elif galileo_import.status == 'ERROR' %}
+          <div class="source-update-message">{{galileo_import.error_message}}</div>
+        {% elif galileo_import.status == 'AMBIGUOUS' %}
+          <div class="source-update-message">{{galileo_import.error_message}}</div>
+        {% endif %}
+        {% if galileo_import.can_import %}<form method="post" action="/project/{{project.code}}/sources/galileo/import"><button class="button" type="submit">Importa dati Galileo</button></form>{% endif %}
+      {% else %}
+        <strong>{{source.file_count}} file</strong>
+        {% if source.type in ["DOCUMENT", "OUTLOOK"] %}<form method="post" action="/project/{{project.code}}/sources/{{source.type}}/read"><button class="button" type="submit">{{"Leggi documenti" if source.type == "DOCUMENT" else "Leggi email"}}</button></form>{% for item in project.source_contents if item.source_type == source.type %}<div class="source-update-message">{{item.file_name}} · {{item.content_type}} · {{"Letto" if item.content_kind == "DOCUMENT" else "Letta"}}</div>{% endfor %}{% endif %}
+        <span>{{source.status_label}}</span>
+        <small>Ultima scansione: {{source.last_scanned_label}}</small>
+        {% if source.files %}<ul class="source-file-list">{% for file in source.files %}<li><span>{{file.name}}</span><small>{{file.status_label}}</small></li>{% endfor %}</ul>{% endif %}
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+</section>

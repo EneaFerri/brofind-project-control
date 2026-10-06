@@ -1,0 +1,76 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Length 1721 >>
+stream
+BT
+/F1 9 Tf
+50 800 Td
+12 TL
+(DEMO PROCESS INDUSTRIES S.P.A.) Tj T*
+(CUSTOMER PURCHASE ORDER) Tj T*
+() Tj T*
+(Customer: Demo Process Industries S.p.A.) Tj T*
+(Customer address: Via Esempio 100, 20100 Milano, Italy) Tj T*
+(Supplier: Brofind S.p.A.) Tj T*
+() Tj T*
+(Purchase order number: PO-DEMO-2026-001) Tj T*
+(Order date: 15 January 2026) Tj T*
+(Project reference: DEMO-B1-001) Tj T*
+() Tj T*
+(CONTRACT VALUE) Tj T*
+(The total net contract value is EUR 500,000.00 \(five hundred thousand euro\).) Tj T*
+(Currency: EUR.) Tj T*
+() Tj T*
+(PAYMENT TERMS) Tj T*
+(All invoices are payable within 30 calendar days from the invoice date.) Tj T*
+() Tj T*
+(CONTRACTUAL AND BILLING MILESTONES) Tj T*
+(1. Order acknowledgement - 15 January 2026 - 20% - EUR 100,000.00.) Tj T*
+(2. Factory Acceptance Test \(FAT\) - 1 August 2026 - 50% - EUR 250,000.00.) Tj T*
+(3. Delivery - 15 October 2026 - 20% - EUR 100,000.00.) Tj T*
+(4. Site Acceptance Test \(SAT\) and Take Over - 15 November 2026 - 10% - EUR 50,000.00.) Tj T*
+() Tj T*
+(DELIVERY) Tj T*
+(Delivery term: DDP Milano, Incoterms 2020.) Tj T*
+(Contractual delivery date: 15 October 2026.) Tj T*
+() Tj T*
+(DELAY PENALTY) Tj T*
+(For delay against the contractual delivery date, the supplier is liable for a) Tj T*
+(penalty equal to 0.5% of the total contract value for each commenced week of) Tj T*
+(delay. The aggregate penalty cap is 5% of the total contract value.) Tj T*
+() Tj T*
+(ACCEPTANCE AND WARRANTY) Tj T*
+(Final acceptance occurs upon successful SAT and Take Over.) Tj T*
+(Warranty: 12 months from Take Over.) Tj T*
+() Tj T*
+(This document is a controlled, synthetic fixture prepared solely for the) Tj T*
+(Cockpit Demo B1. It has no legal or commercial effect.) Tj T*
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000121 00000 n 
+0000000247 00000 n 
+0000000344 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+2116
+%%EOF

@@ -1,0 +1,15 @@
+From: finance@demoprocess.example
+To: pm@brofind.example
+Cc: administration@brofind.example
+Subject: Payment status INV-DEMO-001
+Date: Mon, 21 Sep 2026 10:30:00 +0200
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+
+Dear Brofind team,
+we confirm that EUR 50,000 has already been paid against invoice INV-DEMO-001.
+The remaining EUR 200,000 is still open and we expect payment by 30 September 2026.
+Please contact us if you need further confirmation.
+
+Best regards,
+Demo Process Industries S.p.A.

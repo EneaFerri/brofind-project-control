@@ -1,0 +1,107 @@
+{
+  "schema_version": "1.0",
+  "case_id": "DEMO-B1-001",
+  "evaluation_date": "2026-09-28",
+  "required_results": {
+    "project_creation": {
+      "logical_status": "ACQUISIZIONE_DATI",
+      "known_fields": [
+        "project_code",
+        "pm",
+        "sales"
+      ],
+      "contract_fields_confirmed_before_pdf_review": false
+    },
+    "contract_review": {
+      "at_least_one_core_field_confirmed": true,
+      "field_deliberately_left_to_verify": "penalty_cap",
+      "unconfirmed_field_becomes_operational": false
+    },
+    "economic_state": {
+      "currency": "EUR",
+      "baseline_budget": 340000,
+      "operational_budget": 360000,
+      "orders": 320000,
+      "received_costs": 202000,
+      "labor_costs": 35000,
+      "overhead_costs": 0,
+      "absorbed_costs": 237000,
+      "open_order_commitments": 118000,
+      "absorbed_plus_commitments": 355000,
+      "budget_not_covered": 5000,
+      "detected_economic_overrun": 40000,
+      "overrun_basis": "VdA C000013: Ordered 190000 minus Operational_Budget 150000",
+      "requires_intervention": true,
+      "technical_alert_severity": null,
+      "technical_alert_severity_frozen": false
+    },
+    "financial_state": {
+      "invoice_number": "INV-DEMO-001",
+      "invoice_amount": 250000,
+      "paid_amount": 50000,
+      "paid_amount_authority": "INVOICES.Paid_Amount",
+      "residual_amount": 200000,
+      "due_date": "2026-08-31",
+      "days_overdue_at_evaluation_date": 28,
+      "requires_intervention": true,
+      "payments_sheet_present": false,
+      "technical_alert_severity": null,
+      "technical_alert_severity_frozen": false
+    },
+    "action": {
+      "origin": "overdue invoice INV-DEMO-001",
+      "type": "VERIFY",
+      "requester_username": "pm_greco",
+      "owner_key": "Amministrazione",
+      "assignee_username": "admin_demo",
+      "deadline": "2026-09-30",
+      "expected_state_path": [
+        "OPEN",
+        "IN_PROGRESS",
+        "PENDING_VALIDATION",
+        "CLOSED"
+      ],
+      "alert_remains_open_until_financial_source_changes": true
+    },
+    "conversation": {
+      "context": "Action associata a DEMO-B1-001 e a INV-DEMO-001",
+      "messages": [
+        {
+          "sequence": 1,
+          "sender_username": "pm_greco",
+          "recipient_username": "admin_demo",
+          "kind": "HUMAN_MESSAGE",
+          "text": "Verifica lo stato dell'incasso della fattura INV-DEMO-001 e conferma l'esito entro il 30/09/2026."
+        },
+        {
+          "sequence": 2,
+          "sender_username": "admin_demo",
+          "recipient_username": "pm_greco",
+          "kind": "HUMAN_REPLY",
+          "text": "Verifica eseguita: risultano incassati EUR 50.000; EUR 200.000 restano aperti. Ho avviato il sollecito."
+        }
+      ],
+      "timestamps_frozen": false,
+      "database_ids_frozen": false
+    },
+    "director_portfolio": {
+      "project_must_be_present": true,
+      "project_must_clearly_require_attention": true,
+      "required_reasons": [
+        "sforamento economico EUR 40.000",
+        "fattura scaduta residua EUR 200.000"
+      ],
+      "exact_priority_label": null,
+      "high_or_da_intervenire_is_acceptance_test_candidate": true
+    }
+  },
+  "acceptance_invariants": [
+    "Il risultato economico obbligatorio e' EUR 40.000, indipendentemente dall'etichetta tecnica di severity.",
+    "Il residuo scaduto obbligatorio e' EUR 200.000 e deriva soltanto da INVOICES.Paid_Amount.",
+    "Entrambe le situazioni devono essere rappresentate come richiedenti intervento.",
+    "DEMO-B1-001 deve emergere coerentemente nel Portfolio Direzione.",
+    "Il penalty cap lasciato TO_VERIFY non deve alimentare controlli critici.",
+    "Nessun record applicativo o database viene creato da questo change-set."
+  ]
+}
+

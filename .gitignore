@@ -1,0 +1,31 @@
+.venv/
+.venv_old/
+__pycache__/
+*.pyc
+.pytest_cache/
+.cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.log
+data/development/*.db*
+data/demo/*.db*
+data/demo/*.pid
+data/demo/logs/
+data/test/
+
+data_sources/
+
+# macOS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Database storico v0.3.8 (non usato dai runtime) e template generato all'avvio
+data/brofind_control_v038.db
+data/BROFIND_PROJECT_IMPORT.xlsx
+*.db-journal
+
+# Segreti locali
+.env

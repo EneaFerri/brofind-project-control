@@ -1,0 +1,390 @@
+{
+  "schema_version": "1.0",
+  "case_id": "DEMO-B1-001",
+  "purpose": "Caso unico, preparato e ripetibile per la vertical slice Demo B1",
+  "constraints": {
+    "currency": "EUR",
+    "evaluation_date": "2026-09-28",
+    "persistence": "local_sqlite",
+    "live_integrations": false,
+    "real_authentication": false,
+    "ocr": false,
+    "arbitrary_documents_supported": false,
+    "arbitrary_workbooks_supported": false
+  },
+  "initial_project": {
+    "project_code": "DEMO-B1-001",
+    "logical_status": "ACQUISIZIONE_DATI",
+    "known_at_creation": [
+      "project_code",
+      "pm",
+      "sales"
+    ],
+    "pm": {
+      "username": "pm_greco",
+      "display_name": "A. Greco",
+      "existing_demo_identity": true
+    },
+    "sales": {
+      "username": "sales_riva",
+      "display_name": "S. Riva",
+      "existing_demo_identity": true
+    },
+    "administration": {
+      "username": "admin_demo",
+      "display_name": "Amministrazione — Demo",
+      "owner_key": "Amministrazione",
+      "planned_role": "ADMIN",
+      "existing_demo_identity": false,
+      "note": "Identità futura: non viene creata da questo change-set."
+    },
+    "contract_data_before_review": {
+      "customer": {
+        "status": "UNCONFIRMED",
+        "value": null
+      },
+      "contract_value": {
+        "status": "UNCONFIRMED",
+        "value": null
+      },
+      "other_contract_fields": {
+        "status": "UNCONFIRMED"
+      }
+    },
+    "technical_placeholder_policy": {
+      "allowed_only_if_required_by_current_model": true,
+      "must_be_marked_technical": true,
+      "must_be_marked_unconfirmed": true,
+      "may_feed_screening": false,
+      "may_be_presented_as_source_fact": false,
+      "may_be_presented_as_confirmed_fact": false
+    }
+  },
+  "contract_asset": {
+    "pdf_path": "assets/DEMO-B1-001_contract.pdf",
+    "canonical_text_path": "source/DEMO-B1-001_contract.txt",
+    "media_type": "application/pdf",
+    "textual_pdf": true,
+    "single_document": true,
+    "expected_core_fields": [
+      {
+        "field": "customer",
+        "source_value": "Demo Process Industries S.p.A.",
+        "expected_extracted_value": "Demo Process Industries S.p.A.",
+        "review_decision": "CONFIRM",
+        "expected_operational_value": "Demo Process Industries S.p.A."
+      },
+      {
+        "field": "contract_number",
+        "source_value": "PO-DEMO-2026-001",
+        "expected_extracted_value": "PO-DEMO-2026-001",
+        "review_decision": "CONFIRM",
+        "expected_operational_value": "PO-DEMO-2026-001"
+      },
+      {
+        "field": "order_date",
+        "source_value": "2026-01-15",
+        "expected_extracted_value": "2026-01-15",
+        "review_decision": "CONFIRM",
+        "expected_operational_value": "2026-01-15"
+      },
+      {
+        "field": "contract_value",
+        "source_value": 500000,
+        "expected_extracted_value": 500000,
+        "review_decision": "CONFIRM",
+        "expected_operational_value": 500000,
+        "unit": "EUR"
+      },
+      {
+        "field": "currency",
+        "source_value": "EUR",
+        "expected_extracted_value": "EUR",
+        "review_decision": "CONFIRM",
+        "expected_operational_value": "EUR"
+      },
+      {
+        "field": "payment_terms",
+        "source_value": "30 calendar days from invoice date",
+        "expected_extracted_value": "30 calendar days from invoice date",
+        "review_decision": "CONFIRM",
+        "expected_operational_value": "30 calendar days from invoice date"
+      },
+      {
+        "field": "milestones",
+        "source_value": [
+          "Order acknowledgement",
+          "FAT",
+          "Delivery",
+          "SAT / Take Over"
+        ],
+        "expected_extracted_value": [
+          "Order acknowledgement",
+          "FAT",
+          "Delivery",
+          "SAT / Take Over"
+        ],
+        "review_decision": "CONFIRM",
+        "expected_operational_value": [
+          "Order acknowledgement",
+          "FAT",
+          "Delivery",
+          "SAT / Take Over"
+        ]
+      },
+      {
+        "field": "billing_milestones",
+        "source_value": [
+          {
+            "name": "Order acknowledgement",
+            "date": "2026-01-15",
+            "percentage": 20,
+            "amount": 100000
+          },
+          {
+            "name": "FAT",
+            "date": "2026-08-01",
+            "percentage": 50,
+            "amount": 250000
+          },
+          {
+            "name": "Delivery",
+            "date": "2026-10-15",
+            "percentage": 20,
+            "amount": 100000
+          },
+          {
+            "name": "SAT / Take Over",
+            "date": "2026-11-15",
+            "percentage": 10,
+            "amount": 50000
+          }
+        ],
+        "expected_extracted_value": "same_as_source",
+        "review_decision": "CONFIRM",
+        "expected_operational_value": "same_as_source"
+      },
+      {
+        "field": "contractual_dates",
+        "source_value": {
+          "order": "2026-01-15",
+          "fat": "2026-08-01",
+          "delivery": "2026-10-15",
+          "sat_take_over": "2026-11-15"
+        },
+        "expected_extracted_value": "same_as_source",
+        "review_decision": "CONFIRM",
+        "expected_operational_value": "same_as_source"
+      },
+      {
+        "field": "delay_penalty",
+        "source_value": "0.5% of contract value for each commenced week of delay",
+        "expected_extracted_value": "0.5% of contract value for each commenced week of delay",
+        "review_decision": "CONFIRM",
+        "expected_operational_value": "0.5% of contract value for each commenced week of delay"
+      },
+      {
+        "field": "penalty_cap",
+        "source_value": "5% of contract value",
+        "expected_extracted_value": "5% of contract value",
+        "review_decision": "TO_VERIFY",
+        "expected_operational_value": null,
+        "may_feed_critical_checks": false
+      }
+    ],
+    "extended_fields": [
+      {
+        "field": "incoterm",
+        "source_value": "DDP Milano, Incoterms 2020",
+        "required_for_demo_controls": false
+      },
+      {
+        "field": "warranty",
+        "source_value": "12 months from Take Over",
+        "required_for_demo_controls": false
+      }
+    ]
+  },
+  "economic_asset": {
+    "workbook_path": "assets/DEMO-B1-001_control.xlsx",
+    "format_id": "DEMO_B1_CONTROL_V1",
+    "format_scope": "controlled_demo_only",
+    "formula_cells_allowed": false,
+    "sheet_order": [
+      "CONTROL_SNAPSHOT",
+      "CONTROL_LINES",
+      "INVOICES"
+    ],
+    "payments_sheet_allowed": false,
+    "paid_amount_authority": "INVOICES.Paid_Amount",
+    "sheets": {
+      "CONTROL_SNAPSHOT": {
+        "columns": [
+          "Project_ID",
+          "Snapshot_Date",
+          "Source_Label",
+          "Baseline_Budget",
+          "Operational_Budget",
+          "Orders_JMRP",
+          "Orders_Extract",
+          "Received",
+          "Open_Order_Commitment",
+          "Labor",
+          "Overhead",
+          "Note"
+        ],
+        "rows": [
+          [
+            "DEMO-B1-001",
+            "2026-09-28",
+            "DEMO-B1 Excel · CONTROL_V1",
+            340000,
+            360000,
+            320000,
+            320000,
+            202000,
+            118000,
+            35000,
+            0,
+            "Valori statici controllati; nessuna formula e nessuna integrazione live."
+          ]
+        ]
+      },
+      "CONTROL_LINES": {
+        "columns": [
+          "Project_ID",
+          "Snapshot_Date",
+          "VDA_Code",
+          "VDA_Name",
+          "Analysis_Center",
+          "Baseline_Budget",
+          "Operational_Budget",
+          "Ordered",
+          "Received",
+          "Open_Order_Commitment",
+          "Labor",
+          "Overhead",
+          "Purchases_Closed",
+          "Source_Ref"
+        ],
+        "rows": [
+          [
+            "DEMO-B1-001",
+            "2026-09-28",
+            "C000013",
+            "CARPENTERIE METALLICHE",
+            "COMM",
+            140000,
+            150000,
+            190000,
+            130000,
+            60000,
+            0,
+            0,
+            false,
+            "demo-b1:excel:C000013:COMM"
+          ],
+          [
+            "DEMO-B1-001",
+            "2026-09-28",
+            "C000026",
+            "MATERIALI ELETTRICI",
+            "COMM",
+            95000,
+            100000,
+            80000,
+            50000,
+            30000,
+            0,
+            0,
+            true,
+            "demo-b1:excel:C000026:COMM"
+          ],
+          [
+            "DEMO-B1-001",
+            "2026-09-28",
+            "C000026",
+            "MATERIALI ELETTRICI",
+            "CDA-EL-01",
+            0,
+            0,
+            20000,
+            12000,
+            8000,
+            0,
+            0,
+            true,
+            "demo-b1:excel:C000026:CDA-EL-01"
+          ],
+          [
+            "DEMO-B1-001",
+            "2026-09-28",
+            "C000029",
+            "MONTAGGI ELETTRICI",
+            "COMM",
+            65000,
+            70000,
+            30000,
+            10000,
+            20000,
+            0,
+            0,
+            false,
+            "demo-b1:excel:C000029:COMM"
+          ],
+          [
+            "DEMO-B1-001",
+            "2026-09-28",
+            "C000025",
+            "ENGINEERING E DOCUMENTAZIONE",
+            "COMM",
+            40000,
+            40000,
+            0,
+            0,
+            0,
+            35000,
+            0,
+            null,
+            "demo-b1:excel:C000025:COMM"
+          ]
+        ]
+      },
+      "INVOICES": {
+        "columns": [
+          "Project_ID",
+          "Invoice_Number",
+          "Milestone",
+          "Issue_Date",
+          "Due_Date",
+          "Amount",
+          "Paid_Amount"
+        ],
+        "rows": [
+          [
+            "DEMO-B1-001",
+            "INV-DEMO-001",
+            "FAT",
+            "2026-08-01",
+            "2026-08-31",
+            250000,
+            50000
+          ]
+        ]
+      }
+    }
+  },
+  "provenance_policy": {
+    "stages": [
+      "SOURCE_VALUE",
+      "EXTRACTED_VALUE",
+      "USER_CONFIRMED_VALUE",
+      "OPERATIONAL_VALUE"
+    ],
+    "only_confirmed_values_become_operational": true,
+    "to_verify_values_feed_critical_checks": false,
+    "source_location_should_be_retained": true
+  },
+  "integrity_file": "SHA256SUMS"
+}
+

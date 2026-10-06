@@ -1,0 +1,29 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: brofind_control
+      POSTGRES_USER: brofind
+      POSTGRES_PASSWORD: brofind_demo
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U brofind -d brofind_control"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+psycopg://brofind:brofind_demo@db:5432/brofind_control
+      APP_SECRET: brofind-demo-only
+      BROFIND_RUNTIME: development
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

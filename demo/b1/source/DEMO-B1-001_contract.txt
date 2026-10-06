@@ -1,0 +1,39 @@
+DEMO PROCESS INDUSTRIES S.P.A.
+CUSTOMER PURCHASE ORDER
+
+Customer: Demo Process Industries S.p.A.
+Customer address: Via Esempio 100, 20100 Milano, Italy
+Supplier: Brofind S.p.A.
+
+Purchase order number: PO-DEMO-2026-001
+Order date: 15 January 2026
+Project reference: DEMO-B1-001
+
+CONTRACT VALUE
+The total net contract value is EUR 500,000.00 (five hundred thousand euro).
+Currency: EUR.
+
+PAYMENT TERMS
+All invoices are payable within 30 calendar days from the invoice date.
+
+CONTRACTUAL AND BILLING MILESTONES
+1. Order acknowledgement - 15 January 2026 - 20% - EUR 100,000.00.
+2. Factory Acceptance Test (FAT) - 1 August 2026 - 50% - EUR 250,000.00.
+3. Delivery - 15 October 2026 - 20% - EUR 100,000.00.
+4. Site Acceptance Test (SAT) and Take Over - 15 November 2026 - 10% - EUR 50,000.00.
+
+DELIVERY
+Delivery term: DDP Milano, Incoterms 2020.
+Contractual delivery date: 15 October 2026.
+
+DELAY PENALTY
+For delay against the contractual delivery date, the supplier is liable for a
+penalty equal to 0.5% of the total contract value for each commenced week of
+delay. The aggregate penalty cap is 5% of the total contract value.
+
+ACCEPTANCE AND WARRANTY
+Final acceptance occurs upon successful SAT and Take Over.
+Warranty: 12 months from Take Over.
+
+This document is a controlled, synthetic fixture prepared solely for the
+Cockpit Demo B1. It has no legal or commercial effect.

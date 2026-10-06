@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<a class="back" href="/">← Portfolio</a>
+<section class="hero compact project-hero">
+  <div>
+    <div class="eyebrow">NUOVA COMMESSA</div>
+    <h1>Crea una commessa</h1>
+    <p>Inserisci solo le informazioni iniziali. I dati contrattuali saranno acquisiti in seguito.</p>
+  </div>
+</section>
+<section class="panel new-project-panel">
+  <form method="post" action="/projects" class="new-project-form" novalidate>
+    {% if error %}<div class="form-error" role="alert">{{error}}</div>{% endif %}
+    <label>Codice commessa<input name="code" value="{{values.code}}" required autofocus></label>
+    <label>Project Manager<select name="pm_username" required><option value="">Seleziona il Project Manager</option>{% for person in pm_users %}<option value="{{person.username}}" {% if values.pm_username == person.username %}selected{% endif %}>{{person.display_name}}</option>{% endfor %}</select></label>
+    <label>Commerciale<select name="sales_username" required><option value="">Seleziona il Commerciale</option>{% for person in sales_users %}<option value="{{person.username}}" {% if values.sales_username == person.username %}selected{% endif %}>{{person.display_name}}</option>{% endfor %}</select></label>
+    <div class="dialog-actions"><a class="button secondary" href="/">Annulla</a><button class="button" type="submit">Crea commessa</button></div>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,70 @@
+<section class="panel ai-analysis-panel" id="ai-analysis">
+  <div class="workspace-section-head">
+    <div>
+      <h3>Analisi AI</h3>
+      <p>Il Cockpit confronta le fonti acquisite e propone dati da revisionare. Nessun dato non confermato diventa operativo.</p>
+    </div>
+    <form method="post" action="/project/{{project.code}}/ai/analyze">
+      <button class="button" type="submit">Analizza fonti</button>
+    </form>
+  </div>
+
+  <div class="ai-summary compact-ai-summary">
+    <div><span>Fonti collegate</span><strong>{{project.extracted_summary.sources_analyzed}}</strong></div>
+    <div><span>Dati trovati</span><strong>{{project.extracted_summary.found}}</strong></div>
+    <div><span>Confermati</span><strong>{{project.extracted_summary.confirmed}}</strong></div>
+    <div><span>Da verificare</span><strong>{{project.extracted_summary.to_verify}}</strong></div>
+    <div><span>Punti da presidiare</span><strong>{{project.ai_analysis.findings|length}}</strong></div>
+  </div>
+
+  {% if project.ai_analysis.findings %}
+  <div class="ai-insights-grid">
+    <div>
+      <h4>Elementi rilevati</h4>
+      {% for item in project.ai_analysis.findings %}
+      <div class="ai-insight"><span>{{item.kind}}</span><strong>{{item.title}}</strong><small>{{item.detail}}</small></div>
+      {% endfor %}
+    </div>
+    <div>
+      <h4>Azioni suggerite</h4>
+      {% for suggestion in project.ai_analysis.suggestions %}<div class="ai-suggestion">{{suggestion}}</div>{% else %}<div class="empty">Nessuna azione suggerita.</div>{% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="table-wrap">
+    <table class="data-table extracted-fields-table">
+      <thead><tr><th>Fonte</th><th>Campo</th><th>Valore estratto</th><th>Confidence</th><th>Stato</th><th>Provenienza</th><th>Azioni</th></tr></thead>
+      <tbody>
+      {% for field in project.extracted_fields %}
+        <tr>
+          <td>{{field.source_file_name}}</td>
+          <td><strong>{{field.field_label}}</strong></td>
+          <td>
+            {{field.display_value}}
+            {% if field.corrected_value %}<small>Corretto in: {{field.corrected_value}}</small>{% endif %}
+          </td>
+          <td>{{field.confidence_pct}}%</td>
+          <td>{{field.review_status}}</td>
+          <td><small>{{field.provenance_chain|join(' → ')}}</small></td>
+          <td>
+            {% if field.review_status in ['NEW', 'TO_VERIFY'] %}
+            <form method="post" action="/api/extracted-fields/{{field.id}}/review" class="inline-form">
+              <input type="hidden" name="status" value="CONFIRMED"><input type="hidden" name="return_to" value="/project/{{project.code}}#ai-review"><button class="button small" type="submit">Conferma</button>
+            </form>
+            <form method="post" action="/api/extracted-fields/{{field.id}}/review" class="inline-form">
+              <input type="hidden" name="status" value="TO_VERIFY"><input type="hidden" name="return_to" value="/project/{{project.code}}#ai-review"><button class="button secondary small" type="submit">Da verificare</button>
+            </form>
+            <form method="post" action="/api/extracted-fields/{{field.id}}/review" class="inline-form correction-form">
+              <input type="hidden" name="status" value="CORRECTED"><input type="hidden" name="return_to" value="/project/{{project.code}}#ai-review"><input name="corrected_value" placeholder="Valore corretto" required><button class="button secondary small" type="submit">Correggi</button>
+            </form>
+            {% else %}<span class="muted">Revisionato</span>{% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="7" class="empty">Nessun dato estratto. Leggi le fonti e avvia Analizza fonti.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
