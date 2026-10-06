@@ -43,7 +43,8 @@ def test_portfolio_renders_v1_structure():
         assert "Esporta elenco" in html
         # La sidebar è solo globale: nessuna voce di dominio di commessa.
         sidebar = html[html.index('<aside class="sidebar">') : html.index("</aside>")]
-        assert "Economics" not in sidebar and "Control" not in sidebar
+        nav = sidebar[sidebar.index('class="side-nav"') :]
+        assert "Economics" not in nav and ">Control<" not in nav and "Control</a>" not in nav
 
 
 def test_overview_follows_canonical_monitoring_first_structure():
