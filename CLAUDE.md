@@ -12,7 +12,7 @@ Cockpit di controllo commesse Brofind: **Project Monitoring, Control and Coordin
 
 1. `docs/authority/01_USABLE_CONTROL_COCKPIT_V1_PRODUCT_SCOPE_FREEZE_v1.0.md` (Product & Scope Freeze, FROZEN).
 2. `docs/authority/02_…` (Monitoring Layer / Work Execution Boundary) e `04_ASTRA_AUTHORITY_AND_BOUNDARIES.md`.
-3. Contratti di interazione / dati / accettazione (`docs/authority/drafts/` — ancora bozze, da finalizzare).
+3. Contratti di interazione / dati / accettazione: proposte finali in `docs/v1/03…05` (le bozze originali restano in `docs/authority/drafts/`). Piano, ADR e decisioni aperte in `docs/v1/`.
 4. `05_SHARED_UI_SHELL_CONTRACT_V1.md` + `06_VISUAL_FREEZE_MANIFEST_FINAL.md` + gli 8 mockup in `docs/visuals/` (uno canonico per superficie).
 5. Piano di implementazione approvato.
 6. Codice.
