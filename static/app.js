@@ -1,385 +1,379 @@
-function filterRows(){
-  const q=(document.getElementById('search')?.value||'').toLowerCase();
-  const sales=document.getElementById('filterSales')?.value||'';
-  const pm=document.getElementById('filterPm')?.value||'';
-  const status=document.getElementById('filterStatus')?.value||'';
-  const priority=document.getElementById('filterPriority')?.value||'';
-  document.querySelectorAll('#portfolio tbody tr').forEach(r=>{
-    const okQ=!q || r.dataset.search.toLowerCase().includes(q);
-    const okSales=!sales || r.dataset.sales===sales;
-    const okPm=!pm || r.dataset.pm===pm;
-    const okStatus=!status || r.dataset.status===status;
-    const okPriority=!priority || r.dataset.priority===priority;
-    r.style.display=(okQ&&okSales&&okPm&&okStatus&&okPriority)?'':'none';
+/* Brofind Project Cockpit — interazioni dell'interfaccia V1. */
+
+// ------------------------------------------------------------------ feedback
+
+function showToast(message, type = 'success') {
+  const t = document.getElementById('toast');
+  if (!t || !message) return;
+  t.textContent = message;
+  t.className = `toast visible ${type}`;
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(() => t.classList.remove('visible'), 4200);
+}
+
+function flash(message, type = 'success') {
+  try { sessionStorage.setItem('cockpitFlash', JSON.stringify({ message, type })); } catch (_) { /* storage non disponibile */ }
+}
+
+function reloadWith(message, type = 'success', target = null) {
+  flash(message, type);
+  if (target) {
+    const url = new URL(target, location.href);
+    if (url.pathname === location.pathname) { location.hash = url.hash; location.reload(); }
+    else location.href = url.href;
+  } else {
+    location.reload();
+  }
+}
+
+async function postForm(url, data) {
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(data),
   });
 }
-function clearFilters(){
-  ['search','filterSales','filterPm','filterStatus','filterPriority'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});filterRows();
-}
-async function postForm(url,data){
-  const body=new URLSearchParams(data);
-  return fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
-}
-async function readResponse(r){
-  let data={};
-  try{data=await r.json()}catch(_){data={message:'Risposta non leggibile dal server.'}}
-  if(!r.ok) throw new Error(data.detail||data.message||`Errore HTTP ${r.status}`);
+
+async function readResponse(r) {
+  let data = {};
+  try { data = await r.json(); } catch (_) { data = { message: 'Risposta non leggibile dal server.' }; }
+  if (!r.ok) throw new Error(data.detail || data.message || `Errore HTTP ${r.status}`);
   return data;
 }
-function showToast(message,type='success'){
-  const t=document.getElementById('toast');
-  if(!t){ if(message) alert(message); return; }
-  t.textContent=message;
-  t.className=`toast visible ${type}`;
-  clearTimeout(window.__toastTimer);
-  window.__toastTimer=setTimeout(()=>t.classList.remove('visible'),3000);
-}
-function getProjectCode(){ return document.getElementById('projectHeroSnapshot')?.dataset.projectCode || null; }
 
-async function refreshProjectUI(tab='actions', focus=null){
-  const code=getProjectCode();
-  if(!code) return;
-  const r=await fetch(`/project/${encodeURIComponent(code)}`,{headers:{'X-Requested-With':'ProjectControl'}});
-  if(!r.ok) throw new Error(`Non riesco ad aggiornare la schermata (${r.status}).`);
-  const html=await r.text();
-  const doc=new DOMParser().parseFromString(html,'text/html');
-  ['projectHeroSnapshot','executiveSnapshot','projectDetailsSnapshot','workspaceDrawer','contractDrawer'].forEach(id=>{
-    const current=document.getElementById(id); const fresh=doc.getElementById(id);
-    if(current&&fresh) current.innerHTML=fresh.innerHTML;
+function projectCode() {
+  return document.getElementById('projectHeader')?.dataset.projectCode || null;
+}
+
+// ------------------------------------------------------------------- drawer
+
+function openDrawer(name) {
+  closeMenus();
+  document.querySelectorAll('.drawer.open').forEach(d => { d.classList.remove('open'); d.setAttribute('aria-hidden', 'true'); });
+  const drawer = document.getElementById(`drawer-${name}`);
+  if (!drawer) return;
+  drawer.classList.add('open');
+  drawer.setAttribute('aria-hidden', 'false');
+  document.getElementById('drawerBackdrop')?.classList.add('open');
+}
+
+function closeDrawers() {
+  document.querySelectorAll('.drawer.open').forEach(d => { d.classList.remove('open'); d.setAttribute('aria-hidden', 'true'); });
+  document.getElementById('drawerBackdrop')?.classList.remove('open');
+  if (location.hash.startsWith('#drawer-')) history.replaceState(null, '', location.pathname + location.search);
+}
+
+function drawerTab(button) {
+  const bar = button.closest('.drawer-tabs');
+  const drawer = button.closest('.drawer');
+  bar.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === button));
+  drawer.querySelectorAll('.drawer-pane').forEach(p => p.classList.toggle('active', p.id === button.dataset.pane));
+}
+
+function toggleMenu(id) {
+  const menu = document.getElementById(id);
+  if (!menu) return;
+  const show = menu.style.display === 'none' || !menu.style.display;
+  closeMenus();
+  menu.style.display = show ? 'block' : 'none';
+}
+
+function closeMenus() {
+  document.querySelectorAll('#projectMenu').forEach(m => { m.style.display = 'none'; });
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeDrawers(); closeMenus(); } });
+document.addEventListener('click', e => {
+  if (!e.target.closest('#projectMenu') && !e.target.closest('[onclick*="toggleMenu"]')) closeMenus();
+});
+
+// Ancore storiche (#sources-drawer, #ai-review…) e nuove (#drawer-*) aprono il drawer corrispondente.
+const HASH_DRAWERS = {
+  '#drawer-sources': 'sources', '#sources-drawer': 'sources', '#sources': 'sources',
+  '#drawer-ai': 'ai', '#ai-review': 'ai', '#ai-analysis': 'ai',
+  '#drawer-contract': 'contract', '#drawer-confidence': 'confidence',
+};
+
+// ------------------------------------------------------------------ tabelle
+
+function filterTable(id, query) {
+  const q = (query || '').toLowerCase();
+  document.querySelectorAll(`#${id} tbody tr`).forEach(r => {
+    r.hidden = q && !(r.dataset.search || r.textContent.toLowerCase()).includes(q);
   });
-  filterVdaRows('relevant');
-  if(tab) openWorkspace(tab);
-  if(focus){
-    setTimeout(()=>{
-      let el=null;
-      if(focus.type==='alert') el=document.querySelector(`[data-workspace-alert="${focus.id}"]`);
-      if(focus.type==='finding') el=document.getElementById(`finding-${focus.id}`);
-      if(focus.type==='action') el=document.getElementById(`action-${focus.id}`);
-      if(focus.type==='source') el=findSourceElement(focus.ref);
-      if(el){ el.scrollIntoView({behavior:'smooth',block:'center'}); el.classList.add('focused'); setTimeout(()=>el.classList.remove('focused'),1800); }
-    },60);
-  }
 }
 
+function toggleRows(group, trigger) {
+  const rows = document.querySelectorAll(`tr[data-group="${group}"]`);
+  const open = rows.length && rows[0].classList.contains('hidden');
+  rows.forEach(r => r.classList.toggle('hidden', !open));
+  trigger?.querySelector('.expander')?.classList.toggle('open', open);
+}
 
-// --- Drawer leggeri per fonti e revisione AI ---
-function closeUtilityDrawers(){
-  ['sourceDrawer','aiReviewDrawer'].forEach(id=>{
-    const el=document.getElementById(id); if(el){el.classList.remove('open');el.setAttribute('aria-hidden','true');}
+// ---------------------------------------------------------------- portfolio
+
+const PORTFOLIO_PAGE_SIZE = 10;
+const portfolioState = { page: 1, sort: '', lifecycle: '' };
+
+function portfolioRows() {
+  return [...document.querySelectorAll('#portfolioTable tbody tr')];
+}
+
+function portfolioRender() {
+  const tbody = document.querySelector('#portfolioTable tbody');
+  if (!tbody) return;
+  const q = (document.getElementById('portfolioSearch')?.value || '').toLowerCase();
+  const owner = document.getElementById('portfolioOwner')?.value || '';
+  const rows = portfolioRows();
+  const key = portfolioState.sort;
+  rows.sort((a, b) => {
+    if (key) {
+      const da = Number(a.dataset[`d${key[0].toUpperCase()}${key.slice(1)}`]);
+      const db = Number(b.dataset[`d${key[0].toUpperCase()}${key.slice(1)}`]);
+      if (da !== db) return da - db;
+    }
+    return Number(a.dataset.rank) - Number(b.dataset.rank);
   });
-  document.getElementById('utilityBackdrop')?.classList.remove('open');
-  if(!document.getElementById('workspaceDrawer')?.classList.contains('open') && !document.getElementById('contractDrawer')?.classList.contains('open')) document.body.classList.remove('workspace-open');
-}
-function openUtilityDrawer(id){
-  closeWorkspace(); closeContractDrawer(); closeUtilityDrawers();
-  const drawer=document.getElementById(id), backdrop=document.getElementById('utilityBackdrop');
-  if(!drawer||!backdrop)return;
-  drawer.classList.add('open');drawer.setAttribute('aria-hidden','false');backdrop.classList.add('open');document.body.classList.add('workspace-open');
-}
-function openSourceDrawer(){openUtilityDrawer('sourceDrawer')}
-function closeSourceDrawer(){closeUtilityDrawers()}
-function openAiReviewDrawer(){openUtilityDrawer('aiReviewDrawer')}
-function closeAiReviewDrawer(){closeUtilityDrawers()}
-
-// --- Workspace operativo ---
-function openWorkspace(tab='actions', alertId=null){
-  closeUtilityDrawers();
-  const drawer=document.getElementById('workspaceDrawer');
-  const backdrop=document.getElementById('workspaceBackdrop');
-  if(!drawer||!backdrop)return;
-  drawer.classList.add('open'); backdrop.classList.add('open'); drawer.setAttribute('aria-hidden','false');
-  document.body.classList.add('workspace-open');
-  switchWorkspaceTab(tab);
-  if(alertId){
-    setTimeout(()=>{
-      const el=document.querySelector(`[data-workspace-alert="${alertId}"]`);
-      if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.add('focused');setTimeout(()=>el.classList.remove('focused'),1800)}
-    },80);
+  rows.forEach(r => tbody.appendChild(r));
+  const visible = rows.filter(r => {
+    const okQ = !q || r.dataset.search.includes(q);
+    const okOwner = !owner || r.dataset.owners.split('|').includes(owner);
+    const okLife = !portfolioState.lifecycle || r.dataset.lifecycle === portfolioState.lifecycle;
+    return okQ && okOwner && okLife;
+  });
+  const pages = Math.max(1, Math.ceil(visible.length / PORTFOLIO_PAGE_SIZE));
+  portfolioState.page = Math.min(portfolioState.page, pages);
+  const start = (portfolioState.page - 1) * PORTFOLIO_PAGE_SIZE;
+  const shown = new Set(visible.slice(start, start + PORTFOLIO_PAGE_SIZE));
+  rows.forEach(r => { r.hidden = !shown.has(r); });
+  const count = document.getElementById('portfolioCount');
+  if (count) count.textContent = `Mostra ${shown.size} di ${visible.length} commesse`;
+  const pager = document.getElementById('portfolioPages');
+  if (pager) {
+    pager.innerHTML = '';
+    for (let i = 1; i <= pages; i++) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = i;
+      b.className = i === portfolioState.page ? 'active' : '';
+      b.onclick = () => { portfolioState.page = i; portfolioRender(); };
+      pager.appendChild(b);
+    }
   }
-}
-function closeWorkspace(){
-  document.getElementById('workspaceDrawer')?.classList.remove('open');
-  document.getElementById('workspaceBackdrop')?.classList.remove('open');
-  document.getElementById('workspaceDrawer')?.setAttribute('aria-hidden','true');
-  document.body.classList.remove('workspace-open');
-}
-function openContractDrawer(){
-  closeUtilityDrawers();
-  document.getElementById('contractDrawer')?.classList.add('open');
-  document.getElementById('contractBackdrop')?.classList.add('open');
-  document.getElementById('contractDrawer')?.setAttribute('aria-hidden','false');
-  document.body.classList.add('workspace-open');
-}
-function closeContractDrawer(){
-  document.getElementById('contractDrawer')?.classList.remove('open');
-  document.getElementById('contractBackdrop')?.classList.remove('open');
-  document.getElementById('contractDrawer')?.setAttribute('aria-hidden','true');
-  if(!document.getElementById('workspaceDrawer')?.classList.contains('open')) document.body.classList.remove('workspace-open');
-}
-function switchWorkspaceTab(tab){
-  document.querySelectorAll('.workspace-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
-  document.querySelectorAll('.workspace-pane').forEach(p=>p.classList.toggle('active',p.dataset.pane===tab));
-}
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeWorkspace();closeContractDrawer();closeUtilityDrawers();}});
-
-function findSourceElement(ref){
-  return [...document.querySelectorAll('[data-source-ref]')].find(el=>el.dataset.sourceRef===ref) || null;
-}
-function openEvidence(ref){
-  closeContractDrawer();
-  openWorkspace('evidence');
-  setTimeout(()=>{
-    const el=findSourceElement(ref);
-    if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.add('focused');setTimeout(()=>el.classList.remove('focused'),2200)}
-    else showToast('La fonte è registrata ma non è ancora rappresentata in questa demo.','info');
-  },80);
-}
-function focusAction(id){
-  openWorkspace('actions');
-  setTimeout(()=>{
-    const el=document.getElementById(`action-${id}`);
-    if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.add('focused');setTimeout(()=>el.classList.remove('focused'),1800)}
-  },80);
+  document.querySelectorAll('#portfolioTable .sort-head').forEach(h => h.classList.toggle('sorted', h.dataset.sort === key));
 }
 
-// --- Criticità -> attività ---
-async function createAction(id){
-  try{
-    const data=await readResponse(await fetch(`/api/alerts/${id}/create-action`,{method:'POST'}));
-    await refreshProjectUI('actions',{type:'action',id:data.action_id});
-    showToast(data.message||'Attività creata.',data.existing?'info':'success');
-  }catch(e){showToast(e.message,'error')}
-}
-async function setActionStatus(id,status){
-  try{
-    const data=await readResponse(await postForm(`/api/actions/${id}/status`,{status}));
-    await refreshProjectUI('actions',{type:'action',id});
-    showToast(data.message||'Stato attività aggiornato.','success');
-  }catch(e){showToast(e.message,'error')}
-}
-async function reassignAction(id){
-  const owner=document.getElementById(`owner-${id}`)?.value;
-  if(!owner){showToast('Seleziona prima un responsabile.','error');return;}
-  try{
-    const data=await readResponse(await postForm(`/api/actions/${id}/assign`,{owner}));
-    await refreshProjectUI('actions',{type:'action',id});
-    showToast(data.message,'success');
-  }catch(e){showToast(e.message,'error')}
-}
-async function suggestActionMessage(id){
-  try{
-    const data=await readResponse(await fetch(`/api/actions/${id}/suggest-message`));
-    const area=document.getElementById(`message-${id}`);
-    if(area){area.value=data.text;area.focus();}
-    showToast(data.message,'info');
-  }catch(e){showToast(e.message,'error')}
-}
-async function addActionMessage(id){
-  const area=document.getElementById(`message-${id}`);
-  const body=area?.value||'';
-  if(!body.trim()){showToast('Scrivi un messaggio oppure usa “Suggerisci un testo”.','error');return;}
-  try{
-    const data=await readResponse(await postForm(`/api/actions/${id}/messages`,{body}));
-    await refreshProjectUI('actions',{type:'action',id});
-    showToast(data.message,'success');
-  }catch(e){showToast(e.message,'error')}
-}
-async function registerOutboundMessage(id){
-  const area=document.getElementById(`message-${id}`);
-  const body=area?.value||'';
-  if(!body.trim()){showToast('Scrivi o prepara prima il testo da inviare.','error');return;}
-  try{
-    const data=await readResponse(await postForm(`/api/actions/${id}/outbound`,{body}));
-    try{await navigator.clipboard.writeText(body);}catch(_){/* clipboard non disponibile: il testo resta registrato */}
-    await refreshProjectUI('actions',{type:'action',id});
-    showToast((data.message||'Uscita manuale registrata.')+' Testo copiato negli appunti quando consentito.','success');
-  }catch(e){showToast(e.message,'error')}
+function portfolioSort(key) {
+  portfolioState.sort = portfolioState.sort === key ? '' : key;
+  portfolioState.page = 1;
+  portfolioRender();
 }
 
-async function submitActionResponse(id){
-  const area=document.getElementById(`message-${id}`);
-  const body=area?.value||'';
-  if(!body.trim()){showToast('Inserisci la risposta ricevuta prima di sottoporla a validazione.','error');return;}
-  try{
-    const data=await readResponse(await postForm(`/api/actions/${id}/response`,{body}));
-    await refreshProjectUI('actions',{type:'action',id});
-    showToast(data.message,'success');
-  }catch(e){showToast(e.message,'error')}
-}
-async function validateActionResponse(id){
-  try{
-    const data=await readResponse(await fetch(`/api/actions/${id}/validate`,{method:'POST'}));
-    await refreshProjectUI('actions');
-    showToast(data.message,'success');
-  }catch(e){showToast(e.message,'error')}
-}
-async function requestActionClarification(id){
-  try{
-    const data=await readResponse(await fetch(`/api/actions/${id}/clarify`,{method:'POST'}));
-    await refreshProjectUI('actions',{type:'action',id});
-    showToast(data.message,'info');
-  }catch(e){showToast(e.message,'error')}
+function initPortfolio() {
+  if (!document.getElementById('portfolioTable')) return;
+  document.querySelectorAll('#portfolioTable tbody tr[data-href]').forEach(r => {
+    r.addEventListener('click', () => { location.href = r.dataset.href; });
+  });
+  document.querySelectorAll('#lifecycleTabs button').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('#lifecycleTabs button').forEach(x => x.classList.toggle('active', x === b));
+      portfolioState.lifecycle = b.dataset.lifecycle;
+      portfolioState.page = 1;
+      portfolioRender();
+    });
+  });
+  portfolioRender();
 }
 
-// Kept for API compatibility; deterministic alerts are not manually closed in the UI.
-async function setAlertStatus(id,status){
-  try{
-    const data=await readResponse(await postForm(`/api/alerts/${id}/status`,{status}));
-    await refreshProjectUI('actions',{type:'alert',id});
-    showToast(data.message||'Criticità aggiornata.','success');
-  }catch(e){showToast(e.message,'error')}
+function initActivityFilter() {
+  const bar = document.getElementById('activityFilter');
+  if (!bar) return;
+  bar.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    bar.querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b));
+    document.querySelectorAll('.activity[data-open]').forEach(a => {
+      a.hidden = b.dataset.filter === 'open' && a.dataset.open !== 'yes';
+    });
+  }));
 }
 
-function focusDimension(dim){
-  setTimeout(()=>{
-    const rows=[...document.querySelectorAll('#principal-alerts .alert')];
-    rows.forEach(x=>x.classList.remove('focused'));
-    let targets=rows.filter(x=>x.dataset.dimension===dim);
-    if(dim==='TECHNICAL')targets=rows.filter(x=>['TECHNICAL','PROJECT','COMMUNICATION'].includes(x.dataset.dimension));
-    if(dim==='CONTRACT')targets=rows.filter(x=>['CONTRACT','COMMERCIAL'].includes(x.dataset.dimension));
-    if(targets[0]){
-      targets[0].scrollIntoView({behavior:'smooth',block:'center'});targets.forEach(x=>x.classList.add('focused'));setTimeout(()=>targets.forEach(x=>x.classList.remove('focused')),1800);
-    }else showToast('Nessuna criticità aperta in quest’area.','info');
-  },50)
+// ------------------------------------------------------- segnali → attività
+
+async function createAction(alertId) {
+  try {
+    const data = await readResponse(await fetch(`/api/alerts/${alertId}/create-action`, { method: 'POST' }));
+    reloadWith(data.message || 'Attività creata.', data.existing ? 'info' : 'success', `/project/${encodeURIComponent(projectCode())}/attivita#action-${data.action_id}`);
+  } catch (e) { showToast(e.message, 'error'); }
 }
 
-// --- Segnali dalle comunicazioni ---
-async function setFindingStatus(id,status){
-  try{
-    const data=await readResponse(await postForm(`/api/findings/${id}/status`,{status}));
-    await refreshProjectUI('intelligence',{type:'finding',id});
-    showToast(data.message||'Segnale aggiornato.','success');
-  }catch(e){showToast(e.message,'error')}
+async function actionCall(url, data, fallback, anchorId) {
+  try {
+    const res = await readResponse(await (data ? postForm(url, data) : fetch(url, { method: 'POST' })));
+    reloadWith(res.message || fallback, 'success', anchorId ? `#action-${anchorId}` : null);
+  } catch (e) { showToast(e.message, 'error'); }
 }
-async function applyFinding(id){
-  if(!confirm('Confermi di recepire questa informazione nel cockpit? Verrà applicata soltanto la conseguenza operativa descritta; le fonti ufficiali restano in sola lettura.')) return;
-  try{
-    const data=await readResponse(await fetch(`/api/findings/${id}/apply`,{method:'POST'}));
-    await refreshProjectUI('intelligence',{type:'finding',id});
-    showToast((data.summary||'Informazione recepita nel cockpit.')+' Il riepilogo operativo è stato aggiornato.','success');
-  }catch(e){showToast(e.message,'error')}
+
+function setActionStatus(id, status) { return actionCall(`/api/actions/${id}/status`, { status }, 'Stato attività aggiornato.', id); }
+
+function reassignAction(id) {
+  const owner = document.getElementById(`owner-${id}`)?.value;
+  if (!owner) { showToast('Seleziona prima un responsabile.', 'error'); return; }
+  return actionCall(`/api/actions/${id}/assign`, { owner }, 'Attività riassegnata.', id);
 }
-async function runIntelligence(code){
-  try{
-    const data=await readResponse(await fetch(`/api/projects/${code}/intelligence/analyze`,{method:'POST'}));
-    await refreshProjectUI('intelligence');
-    const msg=data.created>0 ? `${data.created} nuovi segnali trovati. ${data.updated} già conosciuti aggiornati.` : `Nessun nuovo segnale. ${data.updated} segnali già conosciuti sono stati ricontrollati.`;
-    showToast(msg,data.created>0?'success':'info');
-  }catch(e){showToast(e.message,'error')}
+
+async function suggestActionMessage(id) {
+  try {
+    const data = await readResponse(await fetch(`/api/actions/${id}/suggest-message`));
+    const area = document.getElementById(`message-${id}`);
+    if (area) { area.value = data.text; area.focus(); }
+    showToast(data.message, 'info');
+  } catch (e) { showToast(e.message, 'error'); }
 }
-async function submitMailLab(event,code){
+
+function messageText(id, emptyMessage) {
+  const body = document.getElementById(`message-${id}`)?.value || '';
+  if (!body.trim()) { showToast(emptyMessage, 'error'); return null; }
+  return body;
+}
+
+function addActionMessage(id) {
+  const body = messageText(id, 'Scrivi un messaggio oppure usa “Suggerisci un testo”.');
+  if (body) return actionCall(`/api/actions/${id}/messages`, { body }, 'Messaggio aggiunto.', id);
+}
+
+async function registerOutboundMessage(id) {
+  const body = messageText(id, 'Scrivi o prepara prima il testo da inviare.');
+  if (!body) return;
+  try {
+    const data = await readResponse(await postForm(`/api/actions/${id}/outbound`, { body }));
+    try { await navigator.clipboard.writeText(body); } catch (_) { /* appunti non disponibili */ }
+    reloadWith(`${data.message} Testo copiato negli appunti quando consentito.`, 'success', `#action-${id}`);
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+function submitActionResponse(id) {
+  const body = messageText(id, 'Inserisci la risposta prima di sottoporla al richiedente.');
+  if (body) return actionCall(`/api/actions/${id}/response`, { body }, 'Risposta registrata.', id);
+}
+
+function validateActionResponse(id) { return actionCall(`/api/actions/${id}/validate`, null, 'Attività chiusa.', null); }
+function requestActionClarification(id) { return actionCall(`/api/actions/${id}/clarify`, null, 'Chiarimento richiesto.', id); }
+
+// --------------------------------------------------------------- proposte AI
+
+async function setFindingStatus(id, status) {
+  try {
+    const data = await readResponse(await postForm(`/api/findings/${id}/status`, { status }));
+    reloadWith(data.message || 'Segnale aggiornato.', 'success', '#drawer-ai');
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function applyFinding(id) {
+  if (!confirm('Confermi di recepire questa informazione nel cockpit? Verrà applicata soltanto la conseguenza operativa descritta; le fonti ufficiali restano in sola lettura.')) return;
+  try {
+    const data = await readResponse(await fetch(`/api/findings/${id}/apply`, { method: 'POST' }));
+    reloadWith(data.summary || 'Informazione recepita nel cockpit.', 'success', '#drawer-ai');
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function runIntelligence(code) {
+  try {
+    const data = await readResponse(await fetch(`/api/projects/${encodeURIComponent(code)}/intelligence/analyze`, { method: 'POST' }));
+    const msg = data.created > 0
+      ? `${data.created} nuovi segnali trovati. ${data.updated} già conosciuti aggiornati.`
+      : `Nessun nuovo segnale. ${data.updated} segnali già conosciuti ricontrollati.`;
+    reloadWith(msg, data.created > 0 ? 'success' : 'info', '#drawer-ai');
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+async function submitMailLab(event, code) {
   event.preventDefault();
-  const form=event.currentTarget;
-  try{
-    const r=await fetch(`/api/projects/${code}/communications/analyze`,{method:'POST',body:new FormData(form)});
-    const data=await readResponse(r);
-    document.getElementById('mailLab')?.close();
-    await refreshProjectUI('intelligence');
-    showToast(data.created>0 ? `Mail analizzata: ${data.created} nuovi segnali da verificare.` : 'Mail analizzata: nessun nuovo segnale rilevato.',data.created>0?'success':'info');
-  }catch(e){showToast(e.message,'error')}
+  try {
+    const r = await fetch(`/api/projects/${encodeURIComponent(code)}/communications/analyze`, { method: 'POST', body: new FormData(event.currentTarget) });
+    const data = await readResponse(r);
+    reloadWith(data.created > 0 ? `Mail analizzata: ${data.created} nuovi segnali da verificare.` : 'Mail analizzata: nessun nuovo segnale rilevato.', data.created > 0 ? 'success' : 'info', '#drawer-ai');
+  } catch (e) { showToast(e.message, 'error'); }
 }
 
-async function setVdaSaving(code,vda,confirmed){
-  try{
-    const data=await readResponse(await postForm(`/api/projects/${encodeURIComponent(code)}/vda/${encodeURIComponent(vda)}/saving`,{confirmed:String(confirmed)}));
-    await refreshProjectUI(null);
-    showToast(data.message,'success');
-  }catch(e){showToast(e.message,'error')}
+// ------------------------------------------------- decisioni operative cockpit
+
+async function setVdaSaving(code, vda, confirmed) {
+  try {
+    const data = await readResponse(await postForm(`/api/projects/${encodeURIComponent(code)}/vda/${encodeURIComponent(vda)}/saving`, { confirmed: String(confirmed) }));
+    reloadWith(data.message);
+  } catch (e) { showToast(e.message, 'error'); }
 }
 
-// --- V0.3.8: UX semplificata + procurement + saving operativo ---
-function filterVdaRows(mode='relevant', trigger=null){
-  const rows=[...document.querySelectorAll('#vdaControlTable tbody tr')];
-  if(!rows.length) return;
-  let visible=0;
-  rows.forEach(r=>{
-    const economic=r.dataset.economic||'neutral';
-    const procurement=r.dataset.procurement||'unknown';
-    const procurementRisk=r.dataset.procurementRisk||'none';
-    const scope=r.dataset.scope==='yes';
-    const usage=parseFloat(r.dataset.usage||'0');
-    const zero=r.dataset.zero==='yes';
-    const procurementWatch=['high','medium'].includes(procurementRisk) || ['not_started','open','in_progress_unknown'].includes(procurement);
-    let show=true;
-    if(mode==='relevant') show=!zero && (economic==='red' || economic==='amber' || scope || procurementWatch || procurement==='closed' || usage>=80);
-    if(mode==='issues') show=economic==='red' || economic==='amber';
-    if(mode==='open') show=procurementWatch;
-    if(mode==='closed') show=procurement==='closed';
-    if(mode==='scope') show=scope;
-    if(mode==='all') show=true;
-    r.hidden=!show;
-    if(show) visible++;
-  });
-  document.querySelectorAll('.vda-filter').forEach(b=>b.classList.toggle('active',b.dataset.vdaFilter===mode));
-  const count=document.getElementById('vdaFilterCount');
-  if(count) count.textContent=`${visible} di ${rows.length} VdA`;
+async function createConfidencePlan(code) {
+  try {
+    const data = await readResponse(await fetch(`/api/projects/${encodeURIComponent(code)}/confidence-plan`, { method: 'POST' }));
+    reloadWith(data.message, 'success', `/project/${encodeURIComponent(code)}/attivita`);
+  } catch (e) { showToast(e.message, 'error'); }
 }
 
-async function createConfidencePlan(code){
-  try{
-    const data=await readResponse(await fetch(`/api/projects/${encodeURIComponent(code)}/confidence-plan`,{method:'POST'}));
-    await refreshProjectUI('confidence');
-    showToast(data.message,'success');
-  }catch(e){showToast(e.message,'error')}
-}
-
-function openContractConditionDialog(key,title,value,note,source){
-  const dlg=document.getElementById('contractConditionDialog');
-  if(!dlg) return;
-  document.getElementById('contractConditionKey').value=key||'';
-  document.getElementById('contractConditionTitle').textContent=title||'Chiarisci condizione';
-  document.getElementById('contractConditionValue').value=(value||'').startsWith('Da ') ? '' : (value||'');
-  document.getElementById('contractConditionNote').value=note||'';
-  document.getElementById('contractConditionSource').value=source||'';
+function openContractConditionDialog(key, title, value, note, source) {
+  const dlg = document.getElementById('contractConditionDialog');
+  if (!dlg) return;
+  document.getElementById('contractConditionKey').value = key || '';
+  document.getElementById('contractConditionTitle').textContent = title || 'Chiarisci condizione';
+  document.getElementById('contractConditionValue').value = (value || '').startsWith('Da ') ? '' : (value || '');
+  document.getElementById('contractConditionNote').value = note || '';
+  document.getElementById('contractConditionSource').value = source || '';
   dlg.showModal();
 }
-async function saveContractCondition(event){
+
+async function saveContractCondition(event) {
   event.preventDefault();
-  const code=getProjectCode();
-  const key=document.getElementById('contractConditionKey').value;
-  const value=document.getElementById('contractConditionValue').value;
-  const note=document.getElementById('contractConditionNote').value;
-  const source_ref=document.getElementById('contractConditionSource').value;
-  try{
-    const data=await readResponse(await postForm(`/api/projects/${encodeURIComponent(code)}/contract-condition/${encodeURIComponent(key)}`,{value,note,source_ref,freeze:'true'}));
-    document.getElementById('contractConditionDialog')?.close();
-    await refreshProjectUI(null);
-    openContractDrawer();
-    showToast(data.message,'success');
-  }catch(e){showToast(e.message,'error')}
-}
-async function reopenContractCondition(code,key){
-  const reason=prompt('Perché vuoi riaprire questo chiarimento?');
-  if(!reason?.trim()) return;
-  try{
-    const data=await readResponse(await postForm(`/api/projects/${encodeURIComponent(code)}/contract-condition/${encodeURIComponent(key)}/reopen`,{reason}));
-    await refreshProjectUI(null); openContractDrawer(); showToast(data.message,'info');
-  }catch(e){showToast(e.message,'error')}
-}
-function focusFirstContractClarification(){
-  const el=document.querySelector('#contractDrawer .contract-condition.to_clarify');
-  if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.classList.add('focused');setTimeout(()=>el.classList.remove('focused'),1600);}
-}
-async function createCommercialReview(code,requirementId){
-  try{
-    const data=await readResponse(await fetch(`/api/projects/${encodeURIComponent(code)}/requirements/${requirementId}/create-commercial-review`,{method:'POST'}));
-    closeContractDrawer();
-    await refreshProjectUI('actions',{type:'action',id:data.action_id});
-    showToast(data.message,data.existing?'info':'success');
-  }catch(e){showToast(e.message,'error')}
-}
-async function dismissPotentialFinding(code,requirementId){
-  if(!confirm('Scartare questo finding AI? La fonte resta invariata e il finding non produrrà effetti operativi.')) return;
-  try{
-    const data=await readResponse(await postForm(`/api/projects/${encodeURIComponent(code)}/requirements/${requirementId}/disposition`,{disposition:'DISMISSED'}));
-    await refreshProjectUI(null); openContractDrawer(); showToast(data.message||'Finding scartato.','success');
-  }catch(e){showToast(e.message,'error')}
+  const code = projectCode();
+  const key = document.getElementById('contractConditionKey').value;
+  const payload = {
+    value: document.getElementById('contractConditionValue').value,
+    note: document.getElementById('contractConditionNote').value,
+    source_ref: document.getElementById('contractConditionSource').value,
+    freeze: 'true',
+  };
+  try {
+    const data = await readResponse(await postForm(`/api/projects/${encodeURIComponent(code)}/contract-condition/${encodeURIComponent(key)}`, payload));
+    reloadWith(data.message, 'success', '#drawer-contract');
+  } catch (e) { showToast(e.message, 'error'); }
 }
 
-document.addEventListener('DOMContentLoaded',()=>filterVdaRows('relevant'));
+async function reopenContractCondition(code, key) {
+  const reason = prompt('Perché vuoi riaprire questo chiarimento?');
+  if (!reason?.trim()) return;
+  try {
+    const data = await readResponse(await postForm(`/api/projects/${encodeURIComponent(code)}/contract-condition/${encodeURIComponent(key)}/reopen`, { reason }));
+    reloadWith(data.message, 'info', '#drawer-contract');
+  } catch (e) { showToast(e.message, 'error'); }
+}
 
+async function createCommercialReview(code, requirementId) {
+  try {
+    const data = await readResponse(await fetch(`/api/projects/${encodeURIComponent(code)}/requirements/${requirementId}/create-commercial-review`, { method: 'POST' }));
+    reloadWith(data.message, data.existing ? 'info' : 'success', `/project/${encodeURIComponent(code)}/attivita#action-${data.action_id}`);
+  } catch (e) { showToast(e.message, 'error'); }
+}
 
-document.addEventListener('DOMContentLoaded',()=>{
-  if(location.hash==='#sources-drawer') setTimeout(openSourceDrawer,40);
-  if(location.hash==='#ai-review') setTimeout(openAiReviewDrawer,40);
+async function dismissPotentialFinding(code, requirementId) {
+  if (!confirm('Scartare questo finding? La fonte resta invariata e il finding non produrrà effetti operativi.')) return;
+  try {
+    const data = await readResponse(await postForm(`/api/projects/${encodeURIComponent(code)}/requirements/${requirementId}/disposition`, { disposition: 'DISMISSED' }));
+    reloadWith(data.message || 'Finding scartato.', 'success', '#drawer-contract');
+  } catch (e) { showToast(e.message, 'error'); }
+}
+
+// --------------------------------------------------------------------- avvio
+
+document.addEventListener('DOMContentLoaded', () => {
+  initPortfolio();
+  initActivityFilter();
+  try {
+    const pending = JSON.parse(sessionStorage.getItem('cockpitFlash') || 'null');
+    if (pending) { sessionStorage.removeItem('cockpitFlash'); showToast(pending.message, pending.type); }
+  } catch (_) { /* storage non disponibile */ }
+  const drawer = HASH_DRAWERS[location.hash];
+  if (drawer) openDrawer(drawer);
+  if (location.hash.startsWith('#action-')) {
+    const el = document.getElementById(location.hash.slice(1));
+    if (el) { el.hidden = false; el.classList.add('focused'); el.scrollIntoView({ block: 'center' }); setTimeout(() => el.classList.remove('focused'), 2200); }
+  }
 });

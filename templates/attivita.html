@@ -1,0 +1,56 @@
+{% extends "project_base.html" %}
+{% block page_title %}Attività{% endblock %}
+{% block page %}
+{% set status_labels = {'OPEN':'Da fare','IN_PROGRESS':'In corso','PENDING_VALIDATION':'In attesa di conferma','CLOSED':'Chiusa','RESOLVED':'Chiusa'} %}
+{% set status_tones = {'OPEN':'gray','IN_PROGRESS':'blue','PENDING_VALIDATION':'amber','CLOSED':'green','RESOLVED':'green'} %}
+{% set type_labels = {'VERIFY':'Verifica','DECISION':'Decisione','INTERVENTION':'Intervento'} %}
+<div class="page-head">
+  <div><h1>Attività</h1><p>Chi deve fare cosa: richieste esplicite, risposte e validazione del richiedente</p></div>
+  <div class="toolbar filter-tabs" id="activityFilter">
+    <button type="button" class="active" data-filter="open">Aperte ({{ actions|selectattr('open')|list|length }})</button>
+    <button type="button" data-filter="all">Tutte ({{ actions|length }})</button>
+  </div>
+</div>
+<div class="banner gray"><div>Il Cockpit non invia comunicazioni: i testi preparati vanno inviati manualmente e la risposta ricevuta si registra qui. Chiudere un'attività non risolve la condizione che l'ha generata.</div></div>
+{% for a in actions %}
+<article class="activity" id="action-{{ a.id }}" data-open="{{ 'yes' if a.open else 'no' }}" {% if not a.open %}hidden{% endif %}>
+  <div class="activity-head">
+    <div>
+      <h3>{{ a.title }}</h3>
+      <div class="meta">{{ type_labels.get(a.action_type, a.action_type) }} · richiesta da {{ a.requester or 'N/D' }} · responsabile <strong>{{ a.owner }}</strong>{% if a.owner_kind == 'DEPARTMENT' %} (reparto){% endif %} · scadenza {{ a.due_date|dmy }}</div>
+    </div>
+    <div class="pills">
+      {% if a.priority in ('HIGH', 'BLOCKING') %}<span class="pill red">{{ 'Bloccante' if a.priority == 'BLOCKING' else 'Alta priorità' }}</span>{% endif %}
+      {% if a.escalation.active %}<span class="pill amber">{{ a.escalation.label }}</span>{% endif %}
+      <span class="pill {{ status_tones.get(a.status, 'gray') }}">{{ status_labels.get(a.status, a.status) }}</span>
+    </div>
+  </div>
+  {% if a.messages %}
+  <div class="thread">{% for m in a.messages %}<div class="msg {{ m.source }}"><small>{{ m.author }} · {{ {'MANUAL':'Nota','OUTBOUND':'Da inviare / inviato manualmente','RESPONSE':'Risposta','VALIDATION':'Validazione'}.get(m.source, m.source) }} · {{ m.created_at|dmy }}</small>{{ m.body }}</div>{% endfor %}</div>
+  {% endif %}
+  {% if a.open %}
+  <div class="composer">
+    <textarea class="input" id="message-{{ a.id }}" placeholder="Scrivi un messaggio, una nota o la risposta ricevuta…"></textarea>
+    <div class="activity-actions">
+      <button class="btn small" type="button" onclick="suggestActionMessage({{ a.id }})">Suggerisci un testo</button>
+      <button class="btn small" type="button" onclick="addActionMessage({{ a.id }})">Aggiungi nota</button>
+      <button class="btn small success" type="button" onclick="registerOutboundMessage({{ a.id }})">Invio</button>
+      {% if a.can_answer and a.status != 'PENDING_VALIDATION' %}<button class="btn small primary" type="button" onclick="submitActionResponse({{ a.id }})">Invia risposta al richiedente</button>{% endif %}
+    </div>
+    <div class="activity-actions">
+      {% if a.status == 'OPEN' %}<button class="btn small" type="button" onclick="setActionStatus({{ a.id }}, 'IN_PROGRESS')">Prendi in carico</button>{% endif %}
+      {% if a.status == 'PENDING_VALIDATION' and a.can_validate %}
+        <button class="btn small success" type="button" onclick="validateActionResponse({{ a.id }})">Conferma e chiudi</button>
+        <button class="btn small" type="button" onclick="requestActionClarification({{ a.id }})">Chiedi chiarimento</button>
+      {% endif %}
+      <span class="muted" style="margin-left:auto">Riassegna a</span>
+      <select class="input" id="owner-{{ a.id }}" style="padding:5px 8px">{% for o in owners %}<option value="{{ o }}" {% if o == a.owner %}selected{% endif %}>{{ o }}</option>{% endfor %}</select>
+      <button class="btn small" type="button" onclick="reassignAction({{ a.id }})">Riassegna</button>
+    </div>
+  </div>
+  {% elif a.validated_by %}<p class="muted" style="margin:10px 0 0">Validata da {{ a.validated_by }} il {{ a.validated_at|dmy }}.</p>{% endif %}
+</article>
+{% else %}
+<div class="card">{{ ui.empty('Nessuna attività', 'Le attività nascono da un segnale (Criticità) o da una verifica richiesta esplicitamente.') }}</div>
+{% endfor %}
+{% endblock %}

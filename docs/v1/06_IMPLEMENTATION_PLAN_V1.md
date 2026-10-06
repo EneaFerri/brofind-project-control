@@ -11,7 +11,7 @@ Migrazione da v0.3.8.1 a **v1.0** per slice verticali: ognuna porta modello, reg
 |---|---|---|---|
 | **S0** Pulizia pre-push | vedi sotto | — | (nessun tag; poi primo push) |
 | **S1** Identità e permessi | ADR-004/005: `User`, `Role`, `Permission`, `RoleAssignment`, `Department`, DevLoginProvider, dipendenza `require()`, matrice test ruoli × endpoint; chiude AD-001 | S0 | v0.4.0 |
-| **S2** Shell e design system | layout condiviso (sidebar, header commessa, nav di commessa, drawer AI vuoto), design token dai mockup, componenti (semaforo, badge stato, KPI, ciambella, tabella ordinabile, pannello laterale), asset locali (htmx, Chart.js), registro domini con stato `Non ancora disponibile` | S1 | v0.4.0 |
+| **S2** Shell e design system ✅ *anticipata in v0.4.0, prima di S1* | layout condiviso (sidebar, header commessa, nav di commessa, drawer AI vuoto), design token dai mockup, componenti (semaforo, badge stato, KPI, ciambella, tabella ordinabile, pannello laterale), asset locali (htmx, Chart.js), registro domini con stato `Non ancora disponibile` | S1 | v0.4.0 |
 | **S3** Portfolio + Overview | `MonitoringView` comune (ADR-007), Attention per dominio con deduplica e cause comuni, fasi e stato commessa (archiviazione), ordinamento senza score, Principale esposizione, Prossimo gate (`N/D` finché manca S7); ricalcolo su import/evento invece che su GET | S2 | v0.5.0 |
 | **S4** Economics | snapshot immutabili e storici (AD-002), forecast con metodologia configurabile + conferma, Economic Result, scostamenti con causa, varianti → Change Item (parte economica); rimozione eccezioni 9028 | S3 | v0.6.0 |
 | **S5** Billing & Payment | Billing Event da contratto (riusa review campi B1), collegamento eventi ↔ fatture Galileo, tolleranze, KPI maturato/fatturato/incassato/esposizione | S3, S7 parziale | v0.6.0 |
@@ -23,6 +23,8 @@ Migrazione da v0.3.8.1 a **v1.0** per slice verticali: ognuna porta modello, reg
 | **S11** Drawer AI | provider di estrazione, drawer con citazione fonti, tracciamento proposte; modello linguistico secondo OD-08 | S10 | v0.9.0 |
 | **S12** Esercizio in rete aziendale | runtime `production`, PostgreSQL, EntraIdProvider, HTTPS, backup, guida di installazione | S1 | v0.9.x |
 | **UAT** | dataset demo coerente su 8 superfici, pilota reale (Gate 7), verifica visiva finale | tutte | **v1.0.0** |
+
+**Stato al 2026-10-06:** S0 completata; la grafica V1 (S2) è applicata a tutte le 8 superfici più Criticità/Attività/Conversazioni/Storico usando il modello dati v0.3.8.1. Ciò che il modello non fornisce ancora è mostrato come N/D: elenco in [`IMPLEMENTATION_GAPS.md`](IMPLEMENTATION_GAPS.md).
 
 S5 usa le date di maturazione: se S7 non è pronto, la data viene dal contratto confermato (caso B1) e la readiness resta `N/D`.
 

@@ -1,0 +1,41 @@
+{% extends "project_base.html" %}
+{% block page_title %}Conversazioni{% endblock %}
+{% block page %}
+<div class="page-head">
+  <div><h1>Conversazioni</h1><p>Messaggi delle attività e comunicazioni della commessa</p></div>
+  <div class="toolbar">
+    <button class="btn" type="button" onclick="document.getElementById('mailLab').showModal()">Prova l'analisi di una mail</button>
+    <button class="btn ai" type="button" onclick="runIntelligence('{{ h.code }}')">{{ ui.icon('spark') }}Analizza comunicazioni</button>
+  </div>
+</div>
+<div class="grid c-2-1">
+  <div>
+    {% for a in actions if a.messages %}
+    <div class="activity">
+      <div class="activity-head"><div><h3>{{ a.title }}</h3><div class="meta">Responsabile {{ a.owner }} · <a href="/project/{{ h.code }}/attivita#action-{{ a.id }}">apri attività</a></div></div></div>
+      <div class="thread">{% for m in a.messages %}<div class="msg {{ m.source }}"><small>{{ m.author }} · {{ m.created_at|dmy }}</small>{{ m.body }}</div>{% endfor %}</div>
+    </div>
+    {% else %}
+    <div class="card">{{ ui.empty('Nessuna conversazione', 'I messaggi scambiati sulle attività compaiono qui. Una conversazione non sostituisce l’esito dell’attività.') }}</div>
+    {% endfor %}
+  </div>
+  <div class="card">
+    <div class="card-head"><h3>Comunicazioni registrate ({{ project.communications|length }})</h3></div>
+    <div class="card-body">
+      {% for c in project.communications %}
+      <div class="row-list" data-source-ref="{{ c.source_ref }}"><div><span class="pill {{ 'blue' if c.direction == 'INBOUND' else 'gray' }}">{{ 'Ricevuta' if c.direction == 'INBOUND' else 'Inviata' }}</span><div class="grow"><strong>{{ c.subject }}</strong><small>{{ c.date|dmy }} · {{ c.sender }}{% if not c.responded %} · <span class="text-red">senza risposta</span>{% endif %}</small></div></div></div>
+      {% else %}<p class="muted" style="margin:0">Nessuna comunicazione registrata.</p>{% endfor %}
+    </div>
+  </div>
+</div>
+<dialog id="mailLab">
+  <form class="dialog-body" onsubmit="submitMailLab(event, '{{ h.code }}')">
+    <h3>Prova l'analisi di una comunicazione</h3>
+    <label>Oggetto<input class="input" name="subject" required></label>
+    <label>Testo<textarea class="input" name="body" rows="5" required></textarea></label>
+    <label>Mittente<input class="input" name="sender" value="client@example.com"></label>
+    <label>Direzione<select class="input" name="direction"><option value="INBOUND">Ricevuta</option><option value="OUTBOUND">Inviata</option></select></label>
+    <div style="display:flex; gap:8px"><button class="btn primary" type="submit">Aggiungi e analizza</button><button class="btn" type="button" onclick="this.closest('dialog').close()">Annulla</button></div>
+  </form>
+</dialog>
+{% endblock %}

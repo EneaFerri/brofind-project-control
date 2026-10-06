@@ -1,0 +1,57 @@
+{% extends "project_base.html" %}
+{% block page_title %}Document Control{% endblock %}
+{% block page %}
+<div class="page-head">
+  <div><h1>Document Control</h1><p>Stato documentazione di commessa, avanzamento e prossime scadenze</p></div>
+  <div class="toolbar">
+    <label class="search">{{ ui.icon('search') }}<input class="input" style="width:240px" type="search" placeholder="Cerca documento…" oninput="filterTable('docTable', this.value)"></label>
+    <button class="btn primary" type="button" disabled data-tip="Il registro dei documenti richiesti arriva con la slice S8">{{ ui.icon('plus') }}Aggiungi documento richiesto</button>
+  </div>
+</div>
+
+<div class="banner"><div>Il registro dei documenti richiesti (Document List o Minimum Document Set) non è ancora configurato. Sono mostrati i <strong>documenti da completare registrati</strong> e i <strong>file rilevati nella cartella commessa</strong>, la cui adeguatezza resta da confermare.</div></div>
+
+<div class="grid kpi-4">
+  <div class="card donut-wrap">{{ ui.donut(dc.segments, dc.total, 'documenti') }}{{ ui.legend(dc.segments) }}</div>
+  {{ ui.icon_kpi('Documenti attesi', dc.waiting, sub='di cui <b>' ~ dc.waiting_30 ~ '</b> con scadenza entro 30 giorni', tone='red', symbol='!') }}
+  {{ ui.icon_kpi('Documenti scaduti', dc.overdue, tone='blue', symbol='▦') }}
+  {{ ui.icon_kpi('Prossime scadenze', dc.soon, sub='entro 7 giorni', tone='orange', symbol='◷') }}
+</div>
+
+<div class="card mt">
+  <div class="card-head"><h2>Elenco documenti principali ({{ dc.total }})</h2></div>
+  <div class="table-wrap">
+    <table class="table" id="docTable">
+      <thead><tr><th>#</th><th>Documento / Descrizione</th><th>Codice</th><th>Categoria</th><th>Fase</th><th>Rev.</th><th>Stato</th><th>Scadenza</th><th>Ult. aggiornamento</th><th>Responsabile</th><th>Note</th></tr></thead>
+      <tbody>
+      {% for r in dc.rows %}
+        <tr data-search="{{ r.name|lower }}">
+          <td>{{ loop.index }}</td>
+          <td><strong>{{ r.name }}</strong></td>
+          <td>{{ r.code or '–' }}</td>
+          <td>{{ r.category }}</td>
+          <td>{{ ui.nd() }}</td>
+          <td>–</td>
+          <td><span class="pill {{ r.tone }}"><span class="dot {{ r.tone }}"></span>{{ r.state }}</span></td>
+          <td class="{{ 'text-red' if r.overdue }}">{{ r.due|dmy }}</td>
+          <td>{{ r.updated|dmy }}</td>
+          <td>{{ r.owner or '–' }}</td>
+          <td><small>{{ r.note or '' }}</small></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if not dc.rows %}{{ ui.empty('Nessun documento registrato', 'Collega la cartella documenti della commessa dalle Fonti.') }}{% endif %}
+</div>
+
+<div class="grid c-1-1-1 mt">
+  <div class="card"><div class="card-head"><h3>Prossime scadenze</h3></div>
+    <div class="card-body">{% for r in dc.upcoming %}<div class="row-list"><div><span class="{{ 'text-red' if r.overdue }}">{{ r.due|dmy }}</span><div class="grow">{{ r.name }}</div><span class="pill red">Atteso</span></div></div>{% else %}<p class="muted" style="margin:0">Nessuna scadenza registrata.</p>{% endfor %}</div>
+  </div>
+  <div class="card"><div class="card-head"><h3>Documenti critici</h3></div>
+    <div class="card-body">{% for r in dc.critical %}<div class="row-list"><div>{{ ui.dot('RED') }}<div class="grow">{{ r.name }}</div><span class="text-red">{{ 'Scaduto' if r.overdue else 'Bloccante' }}</span></div></div>{% else %}<p class="muted" style="margin:0">Nessun documento critico.</p>{% endfor %}</div>
+  </div>
+  <div class="card"><div class="card-head"><h3>Stato per categoria</h3></div>{{ ui.empty('Non ancora disponibile', 'Le categorie documentali arrivano con il registro dei documenti richiesti.') }}</div>
+</div>
+{% endblock %}

@@ -23,8 +23,8 @@ Le ADR riguardano scelte **tecniche**. Non modificano la semantica di prodotto, 
 - **Decisione proposta:**
   - Backend: **Python 3.13 + FastAPI + SQLAlchemy 2.0** (invariato).
   - Frontend: **pagine generate dal server con Jinja2**, componenti come macro Jinja riusabili, JavaScript leggero per interazioni (drawer, ordinamento, filtri). Aggiornamenti parziali con **htmx** dove serve.
-  - Grafici: **Chart.js** (ciambelle, barre, linee).
-  - Tutti gli asset frontend **inclusi nel repository** (nessun CDN): l'app deve funzionare in rete interna isolata.
+  - Grafici: ciambelle e anelli in CSS (`conic-gradient`), linee e barre in SVG generato dal server. Nessuna libreria esterna finché bastano; Chart.js resta l'opzione se servono grafici interattivi.
+  - Tutti gli asset frontend **inclusi nel repository** (nessun CDN, nessun font esterno): l'app deve funzionare in rete interna isolata.
   - Design token CSS (colori, spaziature, tipografia, semafori) derivati dai mockup in un unico file.
 - **Alternative scartate:** frontend React/SPA separato. Rende di più sulle schermate ricche, ma raddoppia stack, build e competenze richieste.
 - **Rivedibile se:** l'interattività richiesta dalle superfici supera ciò che htmx gestisce agevolmente (da valutare dopo la slice S3).

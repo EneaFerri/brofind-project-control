@@ -16,11 +16,11 @@ Lo script locale copia nei tre percorsi `data_sources/DEMO-B1-001/` il file Gali
 
 ## Percorso demo
 
-1. Come Direzione creare `DEMO-B1-001` con PM `A. Greco` e Commerciale `S. Riva`.
-2. **Aggiorna fonti**; quindi importa Galileo, leggi Documenti e Outlook, infine **Analizza fonti**.
-3. Conferma `Cliente` e `Valore contratto`; lascia `Cap penali` **Da verificare**.
-4. Come PM creare l'attività dall'alert della fattura scaduta; Amministrazione la prende in carico e risponde; il PM convalida e chiude.
-5. In Portfolio verificare sforamento locale EUR 40.000, fattura scaduta EUR 200.000 e la relativa prossima azione.
+1. Come Direzione (selettore **Utente** in basso a sinistra) creare `DEMO-B1-001` da **Nuova commessa**, con PM `A. Greco` e Commerciale `S. Riva`.
+2. Nella commessa aprire **Fonti** (header): **Aggiorna fonti**, poi **Importa dati Galileo**, **Leggi documenti** e **Leggi email**.
+3. Aprire **AI** (header) → **Analizza fonti**. Confermare `Cliente` e `Valore contratto`; lasciare `Cap penali` **Da verificare**.
+4. Come PM, nella pagina **Criticità** creare l'attività dal segnale della fattura scaduta; come Amministrazione prenderla in carico e rispondere da **Attività**; come PM confermare e chiudere.
+5. In **Portfolio** verificare la commessa in rosso: sforamento locale EUR 40.000 (**Economics**) e fattura scaduta EUR 200.000 (**Billing & Payment**).
 
 ## Arresto server
 

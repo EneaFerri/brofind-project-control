@@ -1,28 +1,73 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.version import VERSION
+
+CANONICAL_NAV = [
+    "Overview",
+    "Master",
+    "Technical",
+    "Procurement",
+    "Documents",
+    "Economics",
+    "Billing &amp; Payment",
+    "Criticità",
+    "Attività",
+    "Conversazioni",
+    "Storico",
+]
+SURFACES = [
+    "",
+    "/master",
+    "/technical",
+    "/procurement",
+    "/documents",
+    "/economics",
+    "/billing",
+    "/criticita",
+    "/attivita",
+    "/conversazioni",
+    "/storico",
+]
 
 
-def test_dashboard_renders_v031():
+def test_portfolio_renders_v1_structure():
     with TestClient(app) as client:
         response = client.get("/")
         assert response.status_code == 200
-        assert "Controllo portafoglio commesse" in response.text
-        assert "Scaduto / da fatturare" in response.text
-        assert "Extra non formalizzati" in response.text
-        assert "Segnali comunicazioni" in response.text
+        html = response.text
+        assert "Project Portfolio" in html
+        assert "Principale esposizione" in html
+        for domain in ("Master", "Technical", "Procurement", "Documents", "Economics", "Billing", "Payment"):
+            assert f'data-sort="{domain.lower()}"' in html
+        assert "Esporta elenco" in html
+        # La sidebar è solo globale: nessuna voce di dominio di commessa.
+        sidebar = html[html.index('<aside class="sidebar">') : html.index("</aside>")]
+        assert "Economics" not in sidebar and "Control" not in sidebar
 
 
-def test_project_page_separates_monitoring_and_operational_workspace():
+def test_overview_follows_canonical_monitoring_first_structure():
     with TestClient(app) as client:
         response = client.get("/project/P-26002")
         assert response.status_code == 200
-        assert "Apri alert e attività" in response.text
-        assert "Project Closing" in response.text
-        assert "Timeline commessa" in response.text
-        assert "Gestione operativa" in response.text
-        assert "Segnali dalle comunicazioni" in response.text
-        assert "Chi deve fare cosa" in response.text
+        html = response.text
+        order = [html.index(x) for x in ("Stato domini", "Principale esposizione", "Altre attenzioni", "Prossimo gate")]
+        assert order == sorted(order)
+        nav = html[html.index('class="project-nav"') : html.index("</nav>", html.index('class="project-nav"'))]
+        positions = [nav.index(f">{label}") for label in CANONICAL_NAV]
+        assert positions == sorted(positions)
+
+
+def test_every_surface_renders_for_every_seeded_project_with_identical_navigation():
+    with TestClient(app) as client:
+        codes = [p["code"] for p in client.get("/api/projects").json()]
+        assert codes
+        for code in codes:
+            for suffix in SURFACES:
+                response = client.get(f"/project/{code}{suffix}")
+                assert response.status_code == 200, (code, suffix)
+                assert 'class="project-nav"' in response.text
+        assert client.get("/project/P-26002/control").status_code == 404
 
 
 def test_sales_visibility_api():
@@ -76,7 +121,7 @@ def test_health_version():
     with TestClient(app) as client:
         response = client.get("/health")
         assert response.status_code == 200
-        assert response.json()["version"] == "0.3.8.1"
+        assert response.json()["version"] == VERSION
 
 
 def test_action_can_be_reassigned_and_have_messages():
@@ -151,13 +196,13 @@ def test_action_response_requires_requester_validation_before_close():
         assert action2["validated_by"]
 
 
-def test_v037_portfolio_distinguishes_critical_and_intervention_and_has_tooltip_recaps():
+def test_portfolio_distinguishes_critical_attention_and_has_tooltip_recaps():
     with TestClient(app) as client:
         response = client.get("/")
         assert response.status_code == 200
-        assert ">Critiche<" in response.text
-        assert ">Da intervenire<" in response.text
-        assert "data-tooltip=" in response.text
+        assert " critiche</span>" in response.text
+        assert " in attenzione</span>" in response.text
+        assert "data-tip=" in response.text
 
 
 def test_v038_outbound_message_is_registered_but_not_sent():
@@ -185,15 +230,16 @@ def test_v038_confidence_plan_creates_only_operational_actions():
         assert round(after["control"]["operational_budget"], 2) == 730797.00
 
 
-def test_v038_project_page_surfaces_read_many_write_little_policy_and_simplified_controls():
+def test_project_pages_surface_read_many_write_little_policy():
     with TestClient(app) as client:
         client.post("/api/demo/reset")
-        r = client.get("/project/9028")
-        assert r.status_code == 200
-        assert "Sorgenti read-only" in r.text
-        assert "Budget non ancora coperto" in r.text
-        assert "compact-control-table" in r.text
-        assert "Come migliorarla" in r.text
+        overview = client.get("/project/9028").text
+        assert "Le fonti ufficiali sono in sola lettura" in overview
+        assert "Il contratto originale non viene modificato" in overview
+        assert "Come migliorarla" in overview
+        economics = client.get("/project/9028/economics").text
+        assert "Budget non ancora coperto" in economics
+        assert "Nessun dato Galileo viene modificato" in economics
 
 
 def test_administration_user_sees_assigned_project_and_can_reply_for_validation():
@@ -242,16 +288,13 @@ def test_administration_user_sees_assigned_project_and_can_reply_for_validation(
         assert any(a["id"] == overdue["id"] for a in final["alerts"])
 
 
-def test_project_demo_polish_puts_summary_first_and_moves_sources_ai_to_drawers():
+def test_shared_shell_has_one_ai_drawer_closed_by_default_and_support_drawers():
     with TestClient(app) as client:
         response = client.get("/project/P-26002")
         assert response.status_code == 200
         html = response.text
-        assert 'class="decision-layout"' in html
-        assert 'class="assistant-recap-card"' in html
-        assert 'class="evidence-recap-card"' in html
-        assert 'id="sourceDrawer"' in html
-        assert 'id="aiReviewDrawer"' in html
-        assert "Apri alert e attività" in html
-        assert "Approfondisci controllo economico e dettagli commessa" in html
-        assert html.index('id="executiveSnapshot"') < html.index('id="sourceDrawer"')
+        for drawer in ("drawer-sources", "drawer-ai", "drawer-contract", "drawer-confidence"):
+            assert f'id="{drawer}"' in html
+        assert html.count('id="drawer-ai"') == 1
+        assert 'class="drawer wide open"' not in html
+        assert html.index('id="executiveSnapshot"') < html.index('id="drawer-sources"')

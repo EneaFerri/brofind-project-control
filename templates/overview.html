@@ -1,0 +1,96 @@
+{% extends "project_base.html" %}
+{% block page_title %}Overview{% endblock %}
+{% block page %}
+<section class="ov-head">
+  <div>
+    <div class="crumbs"><a href="/">Portfolio</a> › {{ h.code }} — {{ h.customer }}</div>
+    <div class="phase">{{ h.phase_label }}</div>
+    <div class="areas">
+      <span>{{ ui.dot('RED') }}{{ ov.critical_areas }} {{ 'area critica' if ov.critical_areas == 1 else 'aree critiche' }}</span>
+      <span>{{ ui.dot('YELLOW') }}{{ ov.attention_areas }} in attenzione</span>
+    </div>
+  </div>
+  <div class="ov-side">
+    <div class="pm">PM: {{ h.pm or 'N/D' }}</div>
+    {% if ov.gate %}<div class="muted">{{ ov.gate.name }} {{ (ov.gate.target or ov.gate.forecast)|dmy }}{% if ov.gate.ld %} · penalizzata{% endif %}</div>{% endif %}
+  </div>
+</section>
+
+<section style="margin-top:18px">
+  <h2 class="section-title">Stato domini</h2>
+  <div class="domain-strip" id="executiveSnapshot">
+    {% for d in ov.domains %}
+      <a href="{{ d.url }}" class="{{ d.state }}" data-tip="{{ d.state_label }} — {{ d.recap }}">{{ ui.dot(d.state) }}{{ d.label }}{% if d.count %}<span class="count">{{ d.count }}</span>{% endif %}</a>
+    {% endfor %}
+  </div>
+</section>
+
+<div class="ov-grid">
+  <div>
+    <h2 class="section-title">Principale esposizione</h2>
+    {% if ov.main %}
+      {% set m = ov.main %}
+      <div class="exposure {{ m.tone }}" data-workspace-alert="{{ m.id }}">
+        <div class="alarm">!</div>
+        <div class="body">
+          <h3>{{ m.title }}</h3>
+          <p>{{ m.description }}</p>
+          <div><span class="tag">{{ m.domain_label }}</span></div>
+          <div class="meta" style="margin-top:10px">
+            {% if m.linked_action %}In gestione: {{ m.linked_action.owner }} · prossimo aggiornamento {{ m.linked_action.due_date|dmy }}
+            {% else %}Non ancora presa in carico{% endif %}
+          </div>
+        </div>
+        <div style="display:grid; gap:8px">
+          {% if m.url %}<a class="btn" href="{{ m.url }}">Apri causa {{ ui.icon('arrow') }}</a>{% endif %}
+          {% if not m.linked_action %}<button class="btn small" type="button" onclick="createAction({{ m.id }})">Crea attività</button>{% endif %}
+        </div>
+      </div>
+    {% elif h.acquisition %}
+      <div class="exposure none"><div class="alarm">i</div><div class="body"><h3>In attesa di raccolta dati</h3><p>Nessuna valutazione possibile finché le fonti non sono collegate e importate.</p></div></div>
+    {% else %}
+      <div class="exposure none"><div class="alarm">✓</div><div class="body"><h3>Nessuna esposizione rilevante</h3><p>Nessun segnale aperto sulle fonti disponibili. I domini in grigio non sono ancora valutabili.</p></div></div>
+    {% endif %}
+
+    <h2 class="section-title mt-lg">Altre attenzioni</h2>
+    <div class="att-list">
+      {% for a in ov.others %}
+      <div data-workspace-alert="{{ a.id }}">
+        {{ ui.dot(a.tone) }}
+        <div class="body">
+          <h4>{{ a.title }}</h4>
+          <p>{{ a.description|truncate(150) }}</p>
+          <span class="tag">{{ a.domain_label }}</span>
+        </div>
+        <div class="who">{% if a.linked_action %}In gestione: {{ a.linked_action.owner }}<br>Update {{ a.linked_action.due_date|dmy }}{% else %}<span class="muted">Non presa in carico</span>{% endif %}</div>
+        {% if a.url %}<a class="btn" href="{{ a.url }}">Apri {{ ui.icon('arrow') }}</a>{% else %}<a class="btn" href="/project/{{ h.code }}/criticita">Apri {{ ui.icon('arrow') }}</a>{% endif %}
+      </div>
+      {% else %}
+      <div><span class="muted">Nessun'altra attenzione aperta.</span></div>
+      {% endfor %}
+      {% if ov.more %}<div><a href="/project/{{ h.code }}/criticita">Altri {{ ov.more }} segnali →</a></div>{% endif %}
+    </div>
+  </div>
+
+  <div>
+    <h2 class="section-title">Prossimo gate</h2>
+    {% if ov.gate %}
+    <div class="gate-card">
+      <div style="display:flex; gap:12px; align-items:flex-start">
+        <span style="width:28px">{{ ui.icon('calendar') }}</span>
+        <div><h3>{{ ov.gate.name }}</h3><div class="date">{{ (ov.gate.target or ov.gate.forecast)|dmy }}</div></div>
+      </div>
+      <div><span class="nd-chip" data-tip="La readiness del gate richiede le condizioni del Master Planner (non ancora configurate)">Readiness N/D</span></div>
+      <div style="margin-top:10px"><strong class="nd">Blocker N/D</strong></div>
+      <div class="gate-dates">
+        <div><span>Target</span><strong>{{ ov.gate.target|dmy }}</strong></div>
+        <div><span>Forecast</span><strong class="{{ 'text-red' if ov.gate.delayed }}">{{ ov.gate.forecast|dmy('N/D') }}</strong></div>
+      </div>
+      <a class="btn" style="margin-top:14px" href="/project/{{ h.code }}/master">Apri Master {{ ui.icon('arrow') }}</a>
+    </div>
+    {% else %}
+    <div class="gate-card">{{ ui.empty('Nessun gate configurato', 'Le milestone della commessa non sono ancora disponibili.') }}</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

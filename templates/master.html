@@ -1,0 +1,87 @@
+{% extends "project_base.html" %}
+{% block page_title %}Master Planner{% endblock %}
+{% block page %}
+<div class="page-head">
+  <div><h1>Master Planner</h1><p>Milestone principali e stato di avanzamento</p></div>
+  <div class="toolbar">
+    <button class="btn" type="button" disabled data-tip="Vista estesa non ancora disponibile">Vista compatta</button>
+    <select class="input" disabled aria-label="Filtro fasi"><option>Tutte le fasi</option></select>
+    <button class="btn blue" type="button" disabled data-tip="Esportazione non ancora disponibile">{{ ui.icon('download') }}Esporta</button>
+  </div>
+</div>
+
+<div class="phase-bar" data-tip="Le fasi della commessa non sono ancora configurate: conteggi non disponibili">
+  {% for ph in ms.phases %}<div><strong>{{ ph }}</strong><span>– / –</span></div>{% endfor %}
+</div>
+
+<div class="grid c-2-1">
+  <div class="card">
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>#</th><th>Milestone</th><th>Fase</th><th>Target</th><th>Forecast</th><th>Actual</th><th class="num">Δ giorni</th><th>Stato</th><th>Readiness</th><th>Principali cause / note</th></tr></thead>
+        <tbody>
+          {% for r in ms.rows %}
+          <tr>
+            <td>{{ r.index }}</td>
+            <td><strong>{{ r.name }}</strong>{% if r.ld %}<small>Soggetta a penali</small>{% endif %}</td>
+            <td>{{ ui.nd() }}</td>
+            <td>{{ r.target|dmy }}</td>
+            <td>{% if r.forecast %}<span class="pill {{ 'red' if r.tone == 'red' else 'outline' }}">{{ r.forecast|dmy }}</span>{% else %}–{% endif %}</td>
+            <td>{{ r.actual|dmy }}</td>
+            <td class="num">{% if r.delta is not none %}<span class="pill {{ 'red' if r.delta > 0 else 'gray' }}">{{ '+' if r.delta > 0 }}{{ r.delta }}</span>{% else %}–{% endif %}</td>
+            <td><span class="pill {{ r.tone }}">{{ r.state }}</span></td>
+            <td>{% if r.downstream_check %}<span class="pill amber" data-tip="Milestone a valle di un ritardo: verificare l'impatto. Le date non vengono spostate automaticamente.">Da verificare</span>{% elif r.actual %}–{% else %}{{ ui.nd() }}{% endif %}</td>
+            <td class="causes">{% for c in r.causes %}<div>{{ ui.dot('RED') }}<span>{{ c }}</span></div>{% else %}{% if r.invoice_value %}<small>Milestone di fatturazione · {{ r.invoice_value|eur }}</small>{% else %}–{% endif %}{% endfor %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if not ms.rows %}
+      {{ ui.empty('Nessuna milestone strutturata', 'Le milestone contrattuali e i gate interni non sono ancora disponibili per questa commessa.') }}
+      {% if ms.contract_milestones %}
+      <div class="card-body">
+        <h3 style="font-size:15px; margin-bottom:6px">Milestone dal contratto (confermate in review)</h3>
+        {% for cm in ms.contract_milestones %}<div class="row-list"><div><span class="pill blue">Contratto</span><div class="grow">{{ cm.value }}</div></div></div>{% endfor %}
+      </div>
+      {% endif %}
+    {% endif %}
+  </div>
+
+  <div class="side-panel">
+    <div class="card card-pad">
+      <h3 style="font-size:15px">Prossima milestone</h3>
+      {% if ms.next %}
+        <div style="font-size:20px; font-weight:700; margin-top:10px">{{ ms.next.name }}</div>
+        <div class="muted">Target {{ ms.next.target|dmy }}</div>
+        <div style="margin:10px 0; display:flex; gap:6px; flex-wrap:wrap">
+          <span class="pill {{ ms.next.tone }}">{{ ms.next.state }}{% if ms.next.delta and ms.next.delta > 0 %} · +{{ ms.next.delta }} giorni{% endif %}</span>
+          <span class="nd-chip">Readiness N/D</span>
+        </div>
+        {% if ms.next.causes %}<h4 style="font-size:14px; margin-top:8px">Cause principali</h4>{% for c in ms.next.causes %}<div class="row-list"><div>{{ ui.dot('RED') }}<div class="grow">{{ c }}</div></div></div>{% endfor %}{% endif %}
+      {% else %}<p class="muted">Nessuna milestone aperta.</p>{% endif %}
+    </div>
+    <div class="card card-pad">
+      <h3 style="font-size:15px">Rischio su fasi successive</h3>
+      {% if ms.downstream %}
+        <p class="muted" style="margin:6px 0">Un ritardo a monte richiede di verificare:</p>
+        <div class="mini-list">{% for n in ms.downstream %}<div>{{ ui.dot('YELLOW') }}{{ n }}<b class="text-amber">Da verificare</b></div>{% endfor %}</div>
+      {% else %}<p class="muted" style="margin:6px 0 0">Nessun ritardo a monte rilevato.</p>{% endif %}
+    </div>
+    <div class="card card-pad">
+      <h3 style="font-size:15px">Milestone completate</h3>
+      <div style="display:flex; align-items:center; gap:12px; margin:10px 0">
+        <div class="progress" style="flex:1"><i style="width: {{ (ms.completed / ms.total * 100) if ms.total else 0 }}%"></i></div>
+        <strong>{{ ms.completed }} / {{ ms.total }}</strong>
+      </div>
+      <small>Conteggio di milestone, non avanzamento dei lavori.</small>
+      <div class="mini-list" style="margin-top:8px">
+        <div>{{ ui.dot('blue') }}Completate<b>{{ ms.counts.completed }}</b></div>
+        <div>{{ ui.dot('GREEN') }}In linea<b>{{ ms.counts.in_line }}</b></div>
+        <div>{{ ui.dot('YELLOW') }}Da verificare<b>{{ ms.counts.attention }}</b></div>
+        <div>{{ ui.dot('RED') }}In ritardo<b>{{ ms.counts.late }}</b></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

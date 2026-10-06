@@ -4,7 +4,7 @@ Cockpit di controllo commesse per Brofind: un livello di **monitoraggio, control
 
 Il Cockpit legge le fonti ufficiali, confronta ciò che dovrebbe essere vero oggi con ciò che risulta vero, segnala dove serve attenzione e coordina le eccezioni. Non sostituisce ERP, acquisti, progettazione, EDMS o contabilità.
 
-> **Stato:** baseline `v0.3.8.1` in migrazione verso il **Cockpit V1** (rilascio `v1.0`).
+> **Stato:** `v0.4.0` — interfaccia V1 (shell condivisa e 8 superfici dei mockup) sul modello dati v0.3.8.1, in migrazione verso il **Cockpit V1** (rilascio `v1.0`). Elementi non ancora alimentati: [`docs/v1/IMPLEMENTATION_GAPS.md`](docs/v1/IMPLEMENTATION_GAPS.md).
 > Piano e specifiche: [`docs/v1/`](docs/v1/README.md) · Autorità di prodotto: [`docs/authority/`](docs/authority/) · Mockup canonici: [`docs/visuals/`](docs/visuals/)
 
 ## Principi
@@ -55,6 +55,8 @@ All'avvio, i runtime `demo` e `development` applicano automaticamente le migrazi
 app/
   main.py            avvio applicazione e registrazione router
   routers/           endpoint HTML e API, per area
+  cockpit_views.py   dati delle superfici V1 (Portfolio, Overview, domini)
+  web.py             template e formattazione (euro, date, percentuali)
   models.py          modello dati (SQLAlchemy)
   rules.py           regole deterministiche di segnalazione
   control.py         controllo economico per VdA
@@ -63,7 +65,8 @@ app/
   source_center.py   fonti di commessa (Galileo, Documenti, Outlook)
   ai_analysis.py     estrazione campi dai documenti (proposte da confermare)
 alembic/             migrazioni del database
-templates/, static/  interfaccia
+templates/          shell condivisa (base, project_base), superfici, macro componenti
+static/             design system (style.css) e interazioni (app.js), senza dipendenze esterne
 demo/b1/             caso demo congelato DEMO-B1-001
 docs/                specifiche, runtime, storico
 tests/               test automatici

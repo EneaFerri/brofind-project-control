@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -74,7 +75,8 @@ def test_galileo_import_unlocks_only_economic_domains_and_preserves_placeholders
         detail = client.get(imported.headers["location"])
         assert "Dati Galileo importati correttamente" in detail.text
         assert "__PENDING__" not in detail.text
-        assert "Valore contratto</span><strong>Da acquisire" in detail.text
+        economics = client.get("/project/DEMO-B1-001/economics").text
+        assert re.search(r"Valore contratto</span>\s*<strong>Da acquisire", economics)
         assert "Valore netto</span><strong>€ 0" not in detail.text
         assert (
             source.read_bytes(),

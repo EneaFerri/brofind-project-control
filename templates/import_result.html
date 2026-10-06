@@ -1,1 +1,9 @@
-<!doctype html><html lang="it"><head><meta charset="utf-8"><link rel="stylesheet" href="/static/style.css"></head><body><main class="result"><div class="panel"><h1>{{'Import completato' if ok else 'Import non riuscito'}}</h1><p>{{message}}</p><a class="button" href="/">Torna al cockpit</a></div></main></body></html>
+{% extends "base.html" %}
+{% block title %}Import · Brofind Project Cockpit{% endblock %}
+{% block main %}
+<div class="page form-page">
+  <div class="page-head"><div><h1>Import workbook</h1></div></div>
+  {% if ok %}<div class="banner"><div>{{ message }}</div></div>{% else %}<div class="error-box">{{ message }}</div>{% endif %}
+  <p><a class="btn" href="/">Torna al Portfolio</a></p>
+</div>
+{% endblock %}

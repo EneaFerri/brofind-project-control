@@ -1,20 +1,16 @@
 {% extends "base.html" %}
-{% block content %}
-<a class="back" href="/">← Portfolio</a>
-<section class="hero compact project-hero">
-  <div>
-    <div class="eyebrow">NUOVA COMMESSA</div>
-    <h1>Crea una commessa</h1>
-    <p>Inserisci solo le informazioni iniziali. I dati contrattuali saranno acquisiti in seguito.</p>
+{% block title %}Nuova commessa · Brofind Project Cockpit{% endblock %}
+{% block main %}
+<div class="page form-page">
+  <div class="page-head"><div><h1>Nuova commessa</h1><p>Inserisci solo le informazioni iniziali: cliente, valore e dati contrattuali saranno acquisiti dalle fonti e confermati in seguito.</p></div></div>
+  <div class="card card-pad">
+    <form method="post" action="/projects" novalidate>
+      {% if error %}<div class="error-box" role="alert">{{ error }}</div>{% endif %}
+      <label>Codice commessa<input class="input" name="code" value="{{ values.code }}" required autofocus></label>
+      <label>Project Manager<select class="input" name="pm_username" required><option value="">Seleziona il Project Manager</option>{% for person in pm_users %}<option value="{{ person.username }}" {% if values.pm_username == person.username %}selected{% endif %}>{{ person.display_name }}</option>{% endfor %}</select></label>
+      <label>Commerciale<select class="input" name="sales_username" required><option value="">Seleziona il Commerciale</option>{% for person in sales_users %}<option value="{{ person.username }}" {% if values.sales_username == person.username %}selected{% endif %}>{{ person.display_name }}</option>{% endfor %}</select></label>
+      <div style="display:flex; gap:8px"><button class="btn primary" type="submit">Crea commessa</button><a class="btn" href="/">Annulla</a></div>
+    </form>
   </div>
-</section>
-<section class="panel new-project-panel">
-  <form method="post" action="/projects" class="new-project-form" novalidate>
-    {% if error %}<div class="form-error" role="alert">{{error}}</div>{% endif %}
-    <label>Codice commessa<input name="code" value="{{values.code}}" required autofocus></label>
-    <label>Project Manager<select name="pm_username" required><option value="">Seleziona il Project Manager</option>{% for person in pm_users %}<option value="{{person.username}}" {% if values.pm_username == person.username %}selected{% endif %}>{{person.display_name}}</option>{% endfor %}</select></label>
-    <label>Commerciale<select name="sales_username" required><option value="">Seleziona il Commerciale</option>{% for person in sales_users %}<option value="{{person.username}}" {% if values.sales_username == person.username %}selected{% endif %}>{{person.display_name}}</option>{% endfor %}</select></label>
-    <div class="dialog-actions"><a class="button secondary" href="/">Annulla</a><button class="button" type="submit">Crea commessa</button></div>
-  </form>
-</section>
+</div>
 {% endblock %}

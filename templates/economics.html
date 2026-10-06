@@ -1,0 +1,165 @@
+{% extends "project_base.html" %}
+{% block page_title %}Economic Control{% endblock %}
+{% block page %}
+{% set palette = ['blue', 'purple', 'green', 'orange', 'amber', 'gray', 'teal', 'red'] %}
+<div class="page-head">
+  <div><h1>Economic Control</h1><p>Budget, costi effettivi, forecast e varianti</p></div>
+  <div class="toolbar">
+    <select class="input" disabled aria-label="Valuta"><option>Valuta: EUR</option></select>
+  </div>
+</div>
+
+{% if ec.mode == 'none' %}
+<div class="card">{{ ui.empty('Dati economici non disponibili', 'Importa i dati Galileo della commessa (Fonti) per vedere budget, costi e impegni.') }}</div>
+{% else %}
+
+{% if ec.mode == 'control' %}
+<div class="banner gray"><div>Fonte: <strong>{{ ec.source_label }}</strong> · snapshot del {{ ec.captured_at|dmy }} · dati Galileo in sola lettura.</div></div>
+{% else %}
+<div class="banner amber"><div>Commessa demo con dati economici simulati: il forecast include un costo a finire (ETC) inserito manualmente.</div></div>
+{% endif %}
+
+<div class="grid kpi-7" id="economicKpis">
+  {{ ui.kpi('Valore contratto', ec.contract_value|eur(nd='Da acquisire')) }}
+  {{ ui.kpi('Budget (costi previsti)', ec.budget|eur) }}
+  {{ ui.kpi('Speso a oggi', ec.spent|eur, sub=ec.spent_pct|pct ~ ' del budget', bar=ec.spent_pct) }}
+  {% if ec.forecast is not none %}
+    {{ ui.kpi('Forecast finale', ec.forecast|eur, sub=ec.variance|eur(signed=True) ~ ' (' ~ ec.variance_pct|pct(1, signed=True) ~ ')', sub_class='text-red' if ec.variance > 0 else 'text-green', bar=(ec.forecast / ec.budget * 100) if ec.budget else none, bar_class='orange') }}
+    {{ ui.kpi('Variazione vs budget', ec.variance|eur(signed=True), sub=ec.variance_pct|pct(1, signed=True), sub_class='text-red' if ec.variance > 0 else 'text-green') }}
+  {% else %}
+    <div class="card kpi" data-tip="{{ ec.forecast_note }}"><span>Forecast finale</span><strong class="nd">N/D</strong><small>non consolidabile senza costi a finire confermati</small></div>
+    <div class="card kpi"><span>Variazione vs budget</span><strong class="nd">N/D</strong><small>Costo noto + impegnato: {{ ec.committed|eur }}</small></div>
+  {% endif %}
+  {{ ui.kpi('Varianti approvate', ec.approved_changes|eur(signed=True), sub=ec.approved_changes_pct|pct(1, nd=''), sub_class='text-red') }}
+  {% if ec.margin is defined and ec.margin is not none %}
+    {{ ui.kpi('Margine previsto', ec.margin|eur, sub=ec.margin_pct|pct(1)) }}
+  {% else %}
+    <div class="card kpi"><span>Margine previsto</span><strong class="nd">N/D</strong><small>{% if ec.margin_budget is defined and ec.margin_budget is not none %}Margine a budget: {{ ec.margin_budget|eur }}{% else %}richiede forecast finale{% endif %}</small></div>
+  {% endif %}
+</div>
+
+<div class="grid c-1-1-1 mt">
+  <div class="card">
+    <div class="card-head"><h3>Andamento costi</h3><small>{{ ec.snapshots|length }} snapshot</small></div>
+    <div class="chart-box">
+      {% if ec.snapshots|length >= 2 %}
+        {% set maxv = (ec.snapshots|map(attribute='budget')|max, ec.snapshots|map(attribute='spent')|max)|max %}
+        {% set n = ec.snapshots|length %}
+        <svg viewBox="0 0 400 180" role="img" aria-label="Andamento costi">
+          <line x1="30" y1="160" x2="390" y2="160" stroke="#e5e9f0"/>
+          <polyline fill="none" stroke="#94a3b8" stroke-dasharray="5 4" stroke-width="2" points="{% for s in ec.snapshots %}{{ 30 + loop.index0 * 360 / (n - 1) }},{{ 160 - s.budget / maxv * 140 }} {% endfor %}"/>
+          <polyline fill="none" stroke="#1d4ed8" stroke-width="2.5" points="{% for s in ec.snapshots %}{{ 30 + loop.index0 * 360 / (n - 1) }},{{ 160 - s.spent / maxv * 140 }} {% endfor %}"/>
+        </svg>
+      {% else %}
+        <div class="empty"><strong>Storico non ancora disponibile</strong>L'andamento nel tempo richiede più snapshot Galileo successivi.{% if ec.snapshots %} Oggi: speso {{ ec.spent|eur }} su budget {{ ec.budget|eur }}.{% endif %}</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><h3>Speso per categoria</h3><small data-tip="Le macro-famiglie di costo non sono ancora definite: raggruppamento per natura della VdA">per natura VdA</small></div>
+    {% set segs = [] %}
+    {% for c in ec.categories if c.actual > 0 %}{% set _ = segs.append({'label': c.label, 'count': (c.actual / 1000)|round|int, 'tone': palette[loop.index0 % 8]}) %}{% endfor %}
+    <div class="donut-wrap">
+      {{ ui.donut(segs, (ec.spent / 1000)|round|int, 'k€') }}
+      <div class="legend">{% for s in segs %}<div><span class="dot sm {{ s.tone }}"></span>{{ s.label }}<b>{{ s.count }} k€</b></div>{% endfor %}</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><h3>Variazione vs budget per categoria</h3><small data-tip="{{ 'Forecast meno budget' if ec.mode == 'legacy' else 'Senza forecast confermato si confronta il costo noto + impegnato con il budget: un valore negativo è budget non ancora coperto, non un risparmio' }}">{{ 'forecast' if ec.mode == 'legacy' else 'costo noto + impegnato' }}</small></div>
+    {% set maxvar = (ec.categories|map(attribute='variance')|map('abs')|max) if ec.categories else 0 %}
+    <div class="card-body bars">
+      {% for c in ec.categories %}
+        <div><span>{{ c.label }}</span><i class="{{ ('green' if ec.mode == 'legacy' else 'gray-bar') if c.variance < 0 else '' }} {{ 'gray' if c.variance|abs < 1 else '' }}" style="width: {{ (c.variance|abs / maxvar * 100) if maxvar else 0 }}%"></i><b class="{{ 'text-red' if c.variance > 0 else ('text-green' if ec.mode == 'legacy' else 'muted') }}">{{ c.variance|keur }}</b></div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="grid c-2-1 mt">
+  <div class="card">
+    <div class="card-head"><h2>Dettaglio per voce di costo</h2>{% if ec.mode == 'control' %}<small>Espandi per vedere VdA e Centri di Analisi</small>{% endif %}</div>
+    <div class="table-wrap">
+      <table class="table" id="costTable">
+        <thead><tr><th>Voce</th><th class="num">Budget</th><th class="num">Speso</th><th class="num">Impegnato (ordini)</th><th class="num">Forecast</th><th class="num" {% if ec.mode == 'control' %}data-tip="Costo noto + impegnato meno budget. Negativo = budget non ancora coperto (non è un risparmio)."{% endif %}>Variazione</th><th class="num">%</th><th>Stato</th></tr></thead>
+        <tbody>
+        {% for c in ec.categories %}
+          {% set gid = 'cat-' ~ loop.index %}
+          <tr class="{{ 'clickable' if c.vda }}" {% if c.vda %}onclick="toggleRows('{{ gid }}', this)"{% endif %}>
+            <td>{% if c.vda %}<span class="expander">›</span>{% endif %} <strong>{{ c.label }}</strong>{% if c.vda %} <small style="display:inline">· {{ c.vda|length }} VdA</small>{% endif %}</td>
+            <td class="num">{{ c.budget|eur }}</td>
+            <td class="num">{{ c.actual|eur }}</td>
+            <td class="num">{{ c.open|eur }}</td>
+            <td class="num">{% if c.forecast is defined %}{{ c.forecast|eur }}{% else %}<span class="nd">N/D</span>{% endif %}</td>
+            {% set vclass = 'text-red' if c.variance > 0 else ('text-green' if ec.mode == 'legacy' else 'muted') %}
+            <td class="num {{ vclass }}">{{ c.variance|eur(signed=True) }}</td>
+            <td class="num {{ vclass }}">{{ c.variance_pct|pct(1, signed=True, nd='–') }}</td>
+            <td>{{ ui.dot(c.tone) }}</td>
+          </tr>
+          {% for r in c.vda %}
+          <tr class="sub-row hidden" data-group="{{ gid }}">
+            <td style="padding-left:34px"><strong>{{ r.vda_name }}</strong><small>{{ r.vda_code }}{% if r.centers|length > 1 %} · {{ r.centers|length }} Centri di Analisi: {{ r.centers|map(attribute='analysis_center')|join(', ') }}{% endif %}</small></td>
+            <td class="num">{{ r.operational_budget|eur }}</td>
+            <td class="num">{{ r.actual_cost|eur }}</td>
+            <td class="num">{{ r.open_order_commitment|eur }}</td>
+            <td class="num"><span class="nd">N/D</span></td>
+            <td class="num {{ 'text-red' if r.committed_cost > r.operational_budget }}">{{ (r.committed_cost - r.operational_budget)|eur(signed=True) }}</td>
+            <td class="num"><small>{{ r.procurement_status.label }}</small></td>
+            <td class="nowrap">
+              <span class="pill {{ r.saving_status.tone }}" data-tip="{{ r.saving_status.note }}">{{ r.saving_status.label }}</span>
+              {% if r.saving_status.key == 'CANDIDATE' %}<button class="btn small" type="button" onclick="event.stopPropagation(); setVdaSaving('{{ h.code }}','{{ r.vda_code }}', true)">Conferma saving</button>
+              {% elif r.saving_status.key == 'CONSOLIDATED' %}<button class="btn small ghost" type="button" onclick="event.stopPropagation(); setVdaSaving('{{ h.code }}','{{ r.vda_code }}', false)">Revoca</button>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><h3>Principali scostamenti</h3></div>
+    <div class="card-body">
+      {% for r in ec.overruns %}
+        <div class="row-list"><div>{{ ui.dot('RED') }}<div class="grow"><strong>{{ r.vda_name }}</strong><small>{{ r.vda_code }} · {{ r.procurement_status.label }}</small></div><b class="text-red">{{ (r.committed_cost - r.operational_budget)|eur(signed=True) }}</b></div></div>
+      {% else %}<p class="muted" style="margin:0">Nessuno sforamento già impegnato.</p>{% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="grid c-2-1 mt">
+  <div class="card">
+    <div class="card-head"><h3>Varianti di commessa</h3></div>
+    <div class="table-wrap"><table class="table compact">
+      <thead><tr><th>Data</th><th>Descrizione</th><th class="num">Importo</th><th>Stato</th></tr></thead>
+      <tbody>{% for c in ec.changes %}<tr><td>{{ c.date|dmy }}</td><td>{{ c.description }}</td><td class="num">{{ c.amount|eur(signed=True) }}</td><td><span class="pill {{ c.tone }}">{{ c.state }}</span></td></tr>{% endfor %}</tbody>
+    </table></div>
+    {% if not ec.changes %}{{ ui.empty('Nessuna variante registrata', '') }}{% endif %}
+  </div>
+  <div class="card">
+    <div class="card-head"><h3>Impegni aperti (ordini non evasi)</h3></div>
+    <div class="table-wrap"><table class="table compact">
+      <thead><tr><th>Fornitore</th><th>Descrizione</th><th class="num">Importo</th><th>Consegna prev.</th></tr></thead>
+      <tbody>{% for r in ec.commitments %}<tr><td>{{ ui.nd() }}</td><td>{{ r.vda_name }}</td><td class="num">{{ r.open_order_commitment|eur }}</td><td>{{ ui.nd() }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+    {% if not ec.commitments %}{{ ui.empty('Nessun impegno aperto', '') }}{% endif %}
+  </div>
+</div>
+
+{% if ec.mode == 'control' %}
+<div class="card card-pad mt">
+  <h3 style="font-size:15px; margin-bottom:8px">Come leggere questi numeri</h3>
+  <div class="kv">
+    <span>Costo noto + impegnato (consuntivo + ordini aperti)</span><b>{{ ec.committed|eur }}</b>
+    <span>Budget non ancora coperto da costi o impegni noti</span><b>{{ ec.uncovered|eur }}</b>
+    <span>Sforamenti locali già impegnati</span><b class="{{ 'text-red' if ec.gross_overrun > 0 }}">{{ ec.gross_overrun|eur }}</b>
+    <span>Saving candidato / consolidato</span><b>{{ ec.saving.candidate|eur }} / {{ ec.saving.consolidated|eur }}</b>
+  </div>
+  <p class="muted" style="margin:10px 0 0">Il budget non ancora coperto non è un saving. Un saving entra nel margine solo dopo conferma esplicita e non viene riallocato automaticamente ad altre voci. Nessun dato Galileo viene modificato.</p>
+  {% if ec.quality.issues is defined and ec.quality.issues %}
+    <h4 style="font-size:14px; margin:14px 0 6px">Qualità dei dati</h4>
+    {% for q in ec.quality.issues %}<div class="row-list"><div>{{ ui.dot('YELLOW') }}<div class="grow">{{ q.label }}<small>{{ q.detail }}</small></div><b>{{ q.amount|eur(2) }}</b></div></div>{% endfor %}
+  {% endif %}
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

@@ -1,3 +1,61 @@
-<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{ title or 'Brofind Project Control' }}</title><link rel="stylesheet" href="/static/style.css"></head><body>
-<header><div class="brand"><div class="logo">B</div><div><strong>BROFIND</strong><span>PROJECT CONTROL</span></div></div><div class="header-right"><span class="version">V{{version or '0.3'}}</span><form method="post" action="/login" class="role-switch"><label>Vista</label><select name="username" onchange="this.form.submit()">{% for u in users %}<option value="{{u.username}}" {% if u.username==user.username %}selected{% endif %}>{{u.display_name}}</option>{% endfor %}</select></form></div></header>
-<main>{% block content %}{% endblock %}</main><script src="/static/app.js"></script></body></html>
+{% import "_macros.html" as ui %}
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Brofind Project Cockpit{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css?v={{ version }}">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">Project Cockpit<small>Brofind · controllo commesse</small></div>
+    <nav class="side-nav">
+      <a href="/" class="{% if active_global == 'portfolio' %}active{% endif %}">{{ ui.icon('home') }}Portfolio</a>
+    </nav>
+    <div class="side-bottom">
+      <div class="side-nav">
+        {% if user and user.role == 'DIRECTOR' %}
+        <a href="/projects/new" class="{% if active_global == 'new' %}active{% endif %}">{{ ui.icon('plus') }}Nuova commessa</a>
+        <button type="button" class="side-link" onclick="document.getElementById('toolsDialog').showModal()">{{ ui.icon('tools') }}Strumenti demo</button>
+        {% endif %}
+      </div>
+      {% if users %}
+      <form method="post" action="/login" class="user-box">
+        <label for="userSelect">Utente</label>
+        <select id="userSelect" name="username" onchange="this.form.submit()">
+          {% for u in users %}<option value="{{ u.username }}" {% if user and u.username == user.username %}selected{% endif %}>{{ u.display_name }}</option>{% endfor %}
+        </select>
+      </form>
+      {% endif %}
+      <div class="version">v{{ version }} · {{ runtime }}</div>
+    </div>
+  </aside>
+  <div class="main">
+    {% block main %}{% endblock %}
+  </div>
+</div>
+
+{% if user and user.role == 'DIRECTOR' %}
+<dialog id="toolsDialog">
+  <div class="dialog-body">
+    <h3>Strumenti demo</h3>
+    <form method="post" action="/import" enctype="multipart/form-data" class="dialog-body" style="padding:0">
+      <label>Importa workbook (template standard o caso B1)<input class="input" type="file" name="file" accept=".xlsx" required></label>
+      <div><button class="btn primary small" type="submit">Importa</button> <a class="btn small" href="/download/template">{{ ui.icon('download') }}Scarica template</a></div>
+    </form>
+    {% if destructive_reset_enabled %}
+    <form method="post" action="/api/demo/reset" onsubmit="return confirm('Ripristinare tutti i dati demo? Le modifiche verranno perse.')">
+      <button class="btn danger small" type="submit">Ripristina dati demo</button>
+    </form>
+    {% endif %}
+    <div><button class="btn small" type="button" onclick="this.closest('dialog').close()">Chiudi</button></div>
+  </div>
+</dialog>
+{% endif %}
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script src="/static/app.js?v={{ version }}"></script>
+</body>
+</html>

@@ -5,6 +5,7 @@ Cockpit di controllo commesse Brofind: **Project Monitoring, Control and Coordin
 ## Stato
 
 - Baseline: **v0.3.8.1** (tag `v0.3.8.1-baseline`) — FastAPI + SQLAlchemy + Jinja2, SQLite.
+- Corrente: **v0.4.0** — interfaccia V1 sul modello v0.3.8.1; gap in `docs/v1/IMPLEMENTATION_GAPS.md`.
 - Obiettivo in corso: migrazione a **Usable Control Cockpit V1** secondo `docs/authority/` e i mockup `docs/visuals/`.
 - Target di esercizio: applicazione su rete aziendale per utenti brofind.com, con accesso per ruolo (ruoli configurabili, autorizzazione lato server).
 
@@ -55,7 +56,8 @@ start_demo.bat                        # Windows
 BROFIND_RUNTIME=development .venv/bin/alembic revision --autogenerate -m "..."   # ogni modifica di schema
 ```
 
-- Codice: router in `app/routers/`, ora corrente con `app.clock.utcnow()`, versione solo in `pyproject.toml`.
+- Codice: router in `app/routers/`, dati delle superfici V1 in `app/cockpit_views.py`, ora corrente con `app.clock.utcnow()`, versione solo in `pyproject.toml`.
+- UI: ogni pagina di commessa estende `templates/project_base.html` (header, navigazione, drawer Fonti/AI/Contratto/Affidabilità); componenti in `templates/_macros.html`; nessuna libreria frontend esterna. Dato mancante → `ui.nd()`, mai verde.
 - Fine riga LF (vedi `.gitattributes`); `demo/b1/` non va mai modificato (verificato da `SHA256SUMS`).
 
 Runtime e database: `docs/DEMO_RUNTIME.md`. Python supportato: **3.13.x** (non 3.14).

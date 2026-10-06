@@ -1,0 +1,17 @@
+{% extends "project_base.html" %}
+{% block page_title %}Storico{% endblock %}
+{% block page %}
+<div class="page-head">
+  <div><h1>Storico</h1><p>Cosa è successo sulla commessa: eventi dalle fonti, decisioni e import</p></div>
+</div>
+<div class="card">
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Data</th><th>Tipo</th><th>Evento</th><th>Dettaglio</th></tr></thead>
+      <tbody>{% for e in events %}<tr><td class="nowrap">{{ e.date|dmy }}</td><td><span class="pill {{ {'red':'red','amber':'amber','green':'green','blue':'blue'}.get(e.tone, 'gray') }}">{{ e.kind|title }}</span></td><td><strong>{{ e.title }}</strong></td><td><small>{{ e.detail }}</small></td></tr>{% endfor %}</tbody>
+    </table>
+  </div>
+  {% if not events %}{{ ui.empty('Nessun evento registrato', '') }}{% endif %}
+</div>
+<p class="muted">Lo storico completo delle modifiche (valore precedente, nuovo valore, autore e motivo per ogni dato) arriverà con la slice S10.</p>
+{% endblock %}

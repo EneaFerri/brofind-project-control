@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% block title %}{{ h.code }} · {% block page_title %}Commessa{% endblock %} · Brofind Project Cockpit{% endblock %}
+{% block main %}
+<header class="project-header" id="projectHeader" data-project-code="{{ h.code }}">
+  <div class="ph-code">{{ h.code }}</div>
+  <div class="ph-title"><strong>{{ h.customer }}</strong><span>{{ h.description }}</span></div>
+  <span class="pill {{ h.status_tone }}">{{ h.status_label }}</span>
+  <div class="ph-meta">
+    <div><span>Cliente</span><strong>{{ h.customer }}</strong></div>
+    <div><span>Offerta</span><strong>{% if h.offer %}{{ h.offer }}{% else %}<span class="nd">N/D</span>{% endif %}</strong></div>
+    <div><span>PM</span><strong>{% if h.pm %}{{ h.pm }}{% else %}<span class="nd">N/D</span>{% endif %}</strong></div>
+    <div><span>Inizio contratto</span><strong>{% if h.contract_start %}{{ h.contract_start|dmy }}{% else %}<span class="nd">N/D</span>{% endif %}</strong></div>
+    <div><span>Consegna prevista</span><strong>{% if h.delivery %}{{ h.delivery|dmy }}{% else %}<span class="nd">N/D</span>{% endif %}</strong></div>
+  </div>
+  <div class="ph-actions">
+    <button class="btn" type="button" onclick="openDrawer('sources')">{{ ui.icon('file') }}Fonti</button>
+    <div style="position:relative">
+      <button class="btn" type="button" onclick="toggleMenu('projectMenu')" aria-label="Altre funzioni">{{ ui.icon('more') }}</button>
+      <div class="card" id="projectMenu" style="position:absolute; right:0; top:42px; z-index:20; min-width:230px; padding:6px; display:none">
+        <button class="btn ghost" style="width:100%" type="button" onclick="openDrawer('contract')">Contratto · baseline operativa</button>
+        <button class="btn ghost" style="width:100%" type="button" onclick="openDrawer('confidence')">Affidabilità dei dati</button>
+        <a class="btn ghost" style="width:100%" href="/project/{{ h.code }}/storico">Storico</a>
+      </div>
+    </div>
+    <button class="btn ai" type="button" onclick="openDrawer('ai')">{{ ui.icon('spark') }}AI</button>
+  </div>
+</header>
+<nav class="project-nav" aria-label="Navigazione commessa">
+  {% for item in nav %}<a href="{{ item.url }}" class="{% if item.active %}active{% endif %}">{{ item.label }}{% if item.badge %}<span class="nav-badge">{{ item.badge }}</span>{% endif %}</a>{% endfor %}
+</nav>
+
+<div class="page">
+  {% if h.acquisition %}
+  <div class="banner gray"><div><strong>Acquisizione dati</strong> · La commessa è stata creata. Ora collega o importa le fonti dati. Cliente, valore e dati contrattuali restano <em>Da acquisire</em> finché non vengono confermati dalle fonti. <a href="#" onclick="openDrawer('sources');return false">Apri le fonti</a></div></div>
+  {% endif %}
+  {% if sources_message %}<div class="banner"><div>{{ sources_message }} · <a href="#" onclick="openDrawer('sources');return false">vedi fonti</a></div></div>{% endif %}
+  {% block page %}{% endblock %}
+</div>
+
+<div class="backdrop" id="drawerBackdrop" onclick="closeDrawers()"></div>
+
+{# ------------------------------------------------------------- Drawer Fonti #}
+<aside class="drawer wide" id="drawer-sources" aria-hidden="true" aria-label="Fonti della commessa">
+  <div class="drawer-head"><h2>{{ ui.icon('file') }}Fonti della commessa</h2><button class="close" onclick="closeDrawers()" aria-label="Chiudi">×</button></div>
+  <div class="drawer-body">
+    <p class="muted" style="margin-top:0">Le fonti ufficiali sono in sola lettura: il Cockpit le rileva e ne importa i dati, senza modificarle.</p>
+    <form method="post" action="/project/{{ h.code }}/sources/refresh" style="margin-bottom:14px"><button class="btn primary small" type="submit">Aggiorna fonti</button></form>
+    {% for source in project.sources %}
+    <div class="source-card">
+      <h3>{{ source.label }}{% if source.type != 'GALILEO' %} <span class="pill {{ 'green' if source.file_count else 'gray' }}">{{ source.status_label }}</span>{% endif %}</h3>
+      {% if source.type == 'GALILEO' %}
+        {% set gi = source['import'] %}
+        <div><strong>{{ gi.label }}</strong></div>
+        {% if gi.status == 'IMPORTED' %}<small>Ultimo import riuscito: {{ gi.last_imported_label }}</small>
+          {% if project.control %}<div class="banner" style="margin:8px 0 0"><div><strong>Dati Galileo importati correttamente</strong><br>Budget operativo {{ project.control.operational_budget|eur }} · Ordini {{ project.control.orders_extract|eur }} · Costi assorbiti {{ project.control.actual_total|eur }} · Fatture aperte {{ (project.finance.invoiced - project.finance.collected)|eur }}</div></div>{% endif %}
+        {% elif gi.status in ('ERROR', 'AMBIGUOUS') %}<div class="banner amber" style="margin:8px 0 0"><div>{{ gi.error_message }}</div></div>{% endif %}
+        {% if gi.can_import %}<form method="post" action="/project/{{ h.code }}/sources/galileo/import"><button class="btn small" type="submit">Importa dati Galileo</button></form>{% endif %}
+      {% else %}
+        <div><strong>{{ source.file_count }} file</strong></div>
+        {% if source.type in ['DOCUMENT', 'OUTLOOK'] %}
+          <form method="post" action="/project/{{ h.code }}/sources/{{ source.type }}/read"><button class="btn small" type="submit">{{ 'Leggi documenti' if source.type == 'DOCUMENT' else 'Leggi email' }}</button></form>
+          {% for item in project.source_contents if item.source_type == source.type %}<small>{{ item.file_name }} · {{ item.content_type }} · {{ 'Letto' if item.content_kind == 'DOCUMENT' else 'Letta' }}</small>{% endfor %}
+        {% endif %}
+      {% endif %}
+      <small>Ultima scansione: {{ source.last_scanned_label }}</small>
+      {% if source.files %}<ul>{% for file in source.files %}<li>{{ file.name }}{% if file.status_label %} · {{ file.status_label }}{% endif %}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    {% endfor %}
+    <h3 style="font-size:16px; margin:18px 0 8px">Comunicazioni registrate</h3>
+    {% for c in project.communications[:8] %}
+      <div class="row-list" data-source-ref="{{ c.source_ref }}"><div><span class="pill {{ 'blue' if c.direction == 'INBOUND' else 'gray' }}">{{ 'Ricevuta' if c.direction == 'INBOUND' else 'Inviata' }}</span><div class="grow"><strong>{{ c.subject }}</strong><small>{{ c.date|dmy }} · {{ c.sender }}</small></div></div></div>
+    {% else %}<p class="muted">Nessuna comunicazione registrata.</p>{% endfor %}
+  </div>
+</aside>
+
+{# ---------------------------------------------------------------- Drawer AI #}
+<aside class="drawer wide" id="drawer-ai" aria-hidden="true" aria-label="Assistente AI">
+  <div class="drawer-head"><h2>{{ ui.icon('spark') }}AI Assistant <span class="pill blue">BETA</span></h2><button class="close" onclick="closeDrawers()" aria-label="Chiudi">×</button></div>
+  <div class="drawer-tabs">
+    <button type="button" class="active" data-pane="ai-proposals" onclick="drawerTab(this)">Proposte</button>
+    <button type="button" data-pane="ai-chat" onclick="drawerTab(this)">Chat</button>
+    <button type="button" data-pane="ai-sources" onclick="drawerTab(this)">Fonti</button>
+  </div>
+  <div class="drawer-body">
+    <div class="drawer-pane active" id="ai-proposals">
+      <div class="ai-intro">Le proposte AI non diventano dati della commessa finché una persona non le conferma. Le fonti ufficiali restano invariate.</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px">
+        <form method="post" action="/project/{{ h.code }}/ai/analyze" class="inline-form"><button class="btn primary small" type="submit">Analizza fonti</button></form>
+        <button class="btn small" type="button" onclick="runIntelligence('{{ h.code }}')">Analizza comunicazioni</button>
+      </div>
+      <h3 style="font-size:15px; margin:4px 0 8px">Analisi AI · dati estratti dai documenti</h3>
+      <div class="kv" style="margin-bottom:10px">
+        <span>Fonti collegate</span><b>{{ project.extracted_summary.sources_analyzed }}</b>
+        <span>Dati trovati</span><b>{{ project.extracted_summary.found }}</b>
+        <span>Confermati</span><b>{{ project.extracted_summary.confirmed }}</b>
+        <span>Da verificare</span><b>{{ project.extracted_summary.to_verify }}</b>
+      </div>
+      {% for item in project.ai_analysis.findings %}
+        <div class="proposal"><span class="badge-ai">{{ item.kind }}</span><h4>{{ item.title }}</h4><p>{{ item.detail }}</p></div>
+      {% endfor %}
+      {% for field in project.extracted_fields %}
+      <div class="proposal">
+        <span class="badge-ai">Proposta AI · {{ field.confidence_pct }}%</span>
+        <h4>{{ field.field_label }}</h4>
+        <p><strong>{{ field.display_value }}</strong>{% if field.corrected_value %} · corretto in: {{ field.corrected_value }}{% endif %}<br>{{ field.source_file_name }} · {{ field.provenance_chain|join(' → ') }}</p>
+        {% if field.review_status in ['NEW', 'TO_VERIFY'] %}
+        <div class="acts">
+          {% if field.review_status == 'TO_VERIFY' %}<span class="pill amber">Da verificare</span>{% endif %}
+          <form method="post" action="/api/extracted-fields/{{ field.id }}/review" class="inline-form"><input type="hidden" name="status" value="CONFIRMED"><input type="hidden" name="return_to" value="{{ current_path }}#drawer-ai"><button class="btn success small" type="submit">Conferma</button></form>
+          {% if field.review_status == 'NEW' %}<form method="post" action="/api/extracted-fields/{{ field.id }}/review" class="inline-form"><input type="hidden" name="status" value="TO_VERIFY"><input type="hidden" name="return_to" value="{{ current_path }}#drawer-ai"><button class="btn small" type="submit">Da verificare</button></form>{% endif %}
+          <form method="post" action="/api/extracted-fields/{{ field.id }}/review" class="inline-form"><input type="hidden" name="status" value="CORRECTED"><input type="hidden" name="return_to" value="{{ current_path }}#drawer-ai"><input class="input" name="corrected_value" placeholder="Valore corretto" required style="width:150px"><button class="btn small" type="submit">Correggi</button></form>
+        </div>
+        {% else %}<span class="pill green">{{ 'Confermato' if field.review_status == 'CONFIRMED' else 'Corretto' }}</span>{% endif %}
+      </div>
+      {% endfor %}
+      <h3 style="font-size:15px; margin:18px 0 8px">Segnali dalle comunicazioni</h3>
+      {% for f in project.findings %}
+      <div class="proposal" id="finding-{{ f.id }}">
+        <span class="badge-ai">Proposta AI · {{ (f.confidence * 100)|round|int }}%</span> <span class="pill {{ {'NEW':'amber','VALIDATED':'blue','APPLIED':'green','DISMISSED':'gray'}[f.status] }}">{{ f.status_label }}</span>
+        <h4>{{ f.title }}</h4>
+        <p>{{ f.summary }}</p>
+        {% if f.evidence %}<p><em>“{{ f.evidence }}”</em></p>{% endif %}
+        {% if f.communication_subject %}<p>Fonte: {{ f.communication_subject }} · {{ f.communication_date|dmy }}</p>{% endif %}
+        {% if f.application %}<p><strong>Se recepito:</strong> {{ f.application.label }}. {{ f.application.effect }}</p>{% endif %}
+        {% if f.applied_summary %}<p><strong>Recepito:</strong> {{ f.applied_summary }}</p>{% endif %}
+        <div class="acts">
+          {% if f.status == 'NEW' %}
+            <button class="btn small success" type="button" onclick="setFindingStatus({{ f.id }}, 'VALIDATED')">Conferma interpretazione</button>
+            <button class="btn small" type="button" onclick="setFindingStatus({{ f.id }}, 'DISMISSED')">Scarta</button>
+          {% elif f.status == 'VALIDATED' %}
+            <button class="btn small primary" type="button" onclick="applyFinding({{ f.id }})">Recepisci nel cockpit</button>
+            <button class="btn small" type="button" onclick="setFindingStatus({{ f.id }}, 'NEW')">Riporta da verificare</button>
+          {% endif %}
+        </div>
+      </div>
+      {% else %}<p class="muted">Nessun segnale dalle comunicazioni.</p>{% endfor %}
+    </div>
+    <div class="drawer-pane" id="ai-chat">
+      <div class="ai-intro">Potrò aiutarti su tutta la commessa {{ h.code }}: spiegare stati e cause, confrontare fonti, individuare dati mancanti e preparare bozze. <strong>La chat non è ancora attiva</strong>: la scelta del modello e del trattamento dei dati aziendali è una decisione aperta (OD-08).</div>
+      {% for q in ['Perché questa commessa è in attenzione?', 'Quali dati mancano per valutare i domini in grigio?', 'Cosa è cambiato dall’ultimo aggiornamento delle fonti?', 'Quali fatture risultano scadute e da quanto?', 'Quali documenti servono per il prossimo gate?'] %}
+      <div class="ai-q">{{ q }}<span class="muted">›</span></div>
+      {% endfor %}
+      <div style="display:flex; gap:8px; margin-top:14px"><input class="input" style="flex:1" placeholder="Scrivi una domanda sulla commessa {{ h.code }}…" disabled><button class="btn" disabled>{{ ui.icon('send') }}</button></div>
+    </div>
+    <div class="drawer-pane" id="ai-sources">
+      {% for item in project.source_contents %}<div class="row-list"><div><div class="grow"><strong>{{ item.file_name }}</strong><small>{{ item.source_type }} · {{ item.content_type }}</small></div></div></div>
+      {% else %}<p class="muted">Nessuna fonte letta. Usa “Fonti” per rilevare e leggere documenti ed email.</p>{% endfor %}
+    </div>
+  </div>
+  <div class="ai-footer">L'AI può commettere errori. Verificare sempre le informazioni importanti.</div>
+</aside>
+
+{# ---------------------------------------------------------- Drawer Contratto #}
+{% set cb = project.contract_baseline %}
+<aside class="drawer wide" id="drawer-contract" aria-hidden="true" aria-label="Contratto">
+  <div class="drawer-head"><h2>Contratto · baseline operativa</h2><button class="close" onclick="closeDrawers()" aria-label="Chiudi">×</button></div>
+  <div class="drawer-body">
+    <div class="banner gray"><div>Le condizioni vengono chiarite e congelate nel layer operativo del Cockpit, con fonte e validatore. <strong>Il contratto originale non viene modificato.</strong></div></div>
+    <div class="kv" style="margin-bottom:14px"><span>Condizioni congelate</span><b>{{ cb.frozen_count }}</b><span>Da chiarire</span><b>{{ cb.clarify_count }}</b><span>Change potenziali</span><b>{{ cb.potential_change_count }}</b></div>
+    <h3 style="font-size:16px; margin-bottom:6px">Condizioni principali</h3>
+    <table class="table compact">
+      <tbody>
+      {% for c in cb.conditions %}
+        <tr class="contract-condition {{ c.status|lower }}">
+          <td><strong>{{ c.name }}</strong><small>{{ c.note }}</small></td>
+          <td>{{ c.value }}</td>
+          <td><span class="pill {{ 'green' if c.status == 'FROZEN' else 'amber' }}">{{ 'Congelata' if c.status == 'FROZEN' else 'Da chiarire' }}</span></td>
+          <td class="nowrap">
+            {% if c.editable and c.key in ['effective_date','delivery_date','payment_terms','incoterm','penalties'] %}
+              {% if c.status == 'FROZEN' %}<button class="btn small" type="button" onclick="reopenContractCondition('{{ h.code }}','{{ c.key }}')">Riapri</button>
+              {% else %}<button class="btn small" type="button" onclick="openContractConditionDialog('{{ c.key }}', {{ c.name|tojson }}, {{ c.value|tojson }}, {{ (c.note or '')|tojson }}, {{ (c.source_ref or '')|tojson }})">Chiarisci</button>{% endif %}
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <h3 style="font-size:16px; margin:18px 0 6px">Ordini ed extra</h3>
+    {% for o in project.customer_orders %}
+      <div class="row-list" data-source-ref="{{ o.source_ref }}"><div><span class="pill {{ 'blue' if o.kind == 'BASE' else 'purple' }}">{{ 'Base' if o.kind == 'BASE' else 'Extra' }}</span><div class="grow"><strong>{{ o.number }}</strong><small>{{ o.date|dmy }} · {{ o.quote_ref or 'offerta N/D' }} · {{ o.payment_terms or '' }} · {{ o.incoterm or '' }}</small></div><b>{{ o.net_value|eur }}</b></div></div>
+    {% else %}<p class="muted">Nessun ordine cliente acquisito.</p>{% endfor %}
+    <h3 style="font-size:16px; margin:18px 0 6px">Change potenziali</h3>
+    {% for ch in cb.potential_changes %}
+      <div class="proposal">
+        <span class="badge-ai">{{ ch.source_kind }}</span>
+        <h4>{{ ch.title }}</h4><p>{{ ch.note }}</p>
+        <div class="acts">
+          <button class="btn small primary" type="button" onclick="createCommercialReview('{{ h.code }}', {{ ch.requirement_id }})">Crea verifica al Commerciale</button>
+          <button class="btn small" type="button" onclick="dismissPotentialFinding('{{ h.code }}', {{ ch.requirement_id }})">Scarta</button>
+        </div>
+      </div>
+    {% else %}<p class="muted">Nessun change potenziale da verificare.</p>{% endfor %}
+  </div>
+</aside>
+
+{# ------------------------------------------------------- Drawer Affidabilità #}
+{% set conf = project.confidence %}
+<aside class="drawer wide" id="drawer-confidence" aria-hidden="true" aria-label="Affidabilità dei dati">
+  <div class="drawer-head"><h2>Affidabilità dei dati</h2><button class="close" onclick="closeDrawers()" aria-label="Chiudi">×</button></div>
+  <div class="drawer-body">
+    <p class="muted" style="margin-top:0">L'affidabilità misura quanto sono solide le evidenze disponibili, non l'andamento della commessa.</p>
+    <div class="kv" style="margin-bottom:14px"><span>Affidabilità complessiva</span><b>{{ conf.overall.level_label }}</b><span>Aree da migliorare</span><b>{{ conf.improvement_count }}</b></div>
+    <table class="table compact">
+      <thead><tr><th>Dominio</th><th>Livello</th><th>Cosa sappiamo</th></tr></thead>
+      <tbody>{% for d in conf.ordered %}<tr><td>{{ d.label }}</td><td><span class="pill {{ {'HIGH':'green','MEDIUM':'blue','LOW':'amber','INSUFFICIENT':'red'}.get(d.level, 'gray') }}">{{ d.level_label }}</span></td><td><small>{{ d.explanation or (d.strengths or [])|join('; ') }}</small></td></tr>{% endfor %}</tbody>
+    </table>
+    {% if conf.gaps %}
+    <h3 style="font-size:16px; margin:18px 0 6px">Cosa manca</h3>
+    <ul>{% for g in conf.gaps[:8] %}<li>{{ g.text }}</li>{% endfor %}</ul>
+    <h3 style="font-size:16px; margin:18px 0 6px">Come migliorarla</h3>
+    <p class="muted">Il piano crea solo attività nel Cockpit per recuperare le evidenze mancanti; non modifica i dati.</p>
+    <button class="btn primary small" type="button" onclick="createConfidencePlan('{{ h.code }}')">Genera piano di recupero</button>
+    {% endif %}
+  </div>
+</aside>
+
+<dialog id="contractConditionDialog">
+  <form class="dialog-body" onsubmit="saveContractCondition(event)">
+    <h3 id="contractConditionTitle">Chiarisci condizione</h3>
+    <input type="hidden" id="contractConditionKey">
+    <label>Valore operativo<input class="input" id="contractConditionValue" required></label>
+    <label>Nota / motivazione<textarea class="input" id="contractConditionNote"></textarea></label>
+    <label>Fonte di riferimento<input class="input" id="contractConditionSource"></label>
+    <div style="display:flex; gap:8px"><button class="btn primary" type="submit">Congela condizione</button><button class="btn" type="button" onclick="this.closest('dialog').close()">Annulla</button></div>
+  </form>
+</dialog>
+{% endblock %}

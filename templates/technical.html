@@ -1,0 +1,74 @@
+{% extends "project_base.html" %}
+{% block page_title %}Controllo tecnico{% endblock %}
+{% block page %}
+<div class="page-head">
+  <div><h1>Controllo tecnico</h1><p>Decisioni tecniche aperte e segnali di allineamento con evidenze collegate</p></div>
+  <div class="toolbar">
+    <select class="input" disabled aria-label="Disciplina"><option>Tutte le discipline</option></select>
+    <button class="btn primary" type="button" disabled data-tip="La registrazione di nuove decisioni tecniche arriva con la slice S9">{{ ui.icon('plus') }}Nuova decisione</button>
+  </div>
+</div>
+
+<div class="grid kpi-5">
+  {{ ui.icon_kpi('Decisioni aperte', tc.kpi.open, tone='red', symbol='!') }}
+  {{ ui.icon_kpi('Da confermare con cliente', tc.kpi.client, tone='amber', symbol='◷') }}
+  {{ ui.icon_kpi('Interfacce da chiudere', tc.kpi.interfaces, tone='blue', symbol='⋔') }}
+  {{ ui.icon_kpi('Segnali da verificare', tc.kpi.signals, sub='dalle comunicazioni', tone='orange', symbol='△') }}
+  {{ ui.icon_kpi('Confermate', tc.kpi.confirmed, tone='green', symbol='✓') }}
+</div>
+
+<div class="grid c-2-1 mt">
+  <div class="card">
+    <div class="card-head"><h2>Decisioni tecniche aperte ({{ tc.open|length }})</h2></div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>ID</th><th>Tema / decisione</th><th>Stato</th><th>Chi deve confermare</th><th>Scadenza</th><th>Impatto</th><th>Evidenze</th><th></th></tr></thead>
+        <tbody>
+        {% for r in tc.open %}
+          <tr>
+            <td class="nowrap">{{ r.ref }}</td>
+            <td class="topic"><strong>{{ r.topic }}</strong>{% if r.note %}<small>{{ r.note|truncate(120) }}</small>{% endif %}</td>
+            <td><span class="pill {{ r.tone }}"><span class="dot {{ r.tone }}"></span>{{ r.state }}</span></td>
+            <td>{{ r.who }}</td>
+            <td>{{ r.due|dmy('N/D') }}</td>
+            <td><span class="pill blue">{{ r.impact }}</span></td>
+            <td>{% for e in r.evidence %}<span class="tag blue">{{ e }}</span>{% endfor %}</td>
+            <td class="nowrap">{% if r.requirement_id %}<button class="btn small" type="button" onclick="createCommercialReview('{{ h.code }}', {{ r.requirement_id }})">Verifica commerciale</button>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if not tc.open %}{{ ui.empty('Nessuna decisione tecnica aperta', 'Le decisioni e i checkpoint tecnici compaiono qui quando vengono rilevati dalle fonti o registrati.') }}{% endif %}
+  </div>
+
+  <div class="side-panel">
+    <div class="card">
+      <div class="card-head"><h3>Rischi tecnici principali</h3></div>
+      <div class="card-body">
+        {% for r in tc.risks %}<div class="row-list"><div>{{ ui.dot(r.tone) }}<div class="grow">{{ r.title }}</div><span class="pill {{ 'red' if r.tone == 'RED' else 'amber' }}">{{ 'Alto' if r.tone == 'RED' else 'Medio' }}</span></div></div>
+        {% else %}<p class="muted" style="margin:0">Nessun rischio tecnico aperto.</p>{% endfor %}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3>Fonti disponibili</h3></div>
+      <div class="card-body">
+        {% for s in tc.sources %}<div class="row-list"><div><div class="grow">{{ s.label }}</div><span class="pill {{ s.tone }}">{{ s.state }}</span></div></div>{% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mt">
+  <div class="card-head"><h2>Decisioni confermate ({{ tc.confirmed|length }})</h2></div>
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>Data</th><th>Decisione</th><th>Impatto</th><th>Evidenza registrata</th><th>Note</th></tr></thead>
+      <tbody>
+      {% for r in tc.confirmed %}<tr><td>{{ r.date|dmy }}</td><td><strong>{{ r.topic }}</strong></td><td><span class="pill blue">{{ r.impact }}</span></td><td>{% for e in r.evidence %}<span class="tag blue">{{ e }}</span>{% endfor %}</td><td><small>{{ r.note|truncate(140) if r.note else '' }}</small></td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if not tc.confirmed %}{{ ui.empty('Nessuna decisione confermata', 'Le decisioni confermate dal ruolo competente compaiono qui con la loro evidenza.') }}{% endif %}
+</div>
+{% endblock %}

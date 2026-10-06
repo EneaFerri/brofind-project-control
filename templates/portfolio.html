@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Portfolio · Brofind Project Cockpit{% endblock %}
+{% block main %}
+<div class="page" id="portfolioPage">
+  <div class="page-head">
+    <div>
+      <h1>Project Portfolio</h1>
+      <p>Panoramica commesse e stato di controllo</p>
+    </div>
+    <div class="toolbar">
+      <label class="search">{{ ui.icon('search') }}<input class="input" id="portfolioSearch" type="search" placeholder="Cerca commessa, cliente, n° offerta…" oninput="portfolioRender()"></label>
+      <select class="select input" id="portfolioOwner" onchange="portfolioRender()" aria-label="Filtra per responsabile">
+        <option value="">Tutti i responsabili</option>
+        {% for pm in pms %}<option value="{{ pm }}">PM · {{ pm }}</option>{% endfor %}
+        {% for s in sales %}<option value="{{ s }}">Commerciale · {{ s }}</option>{% endfor %}
+      </select>
+      <button class="btn ai" type="button" onclick="showToast('Il drawer AI è disponibile all’interno di ogni commessa.','info')">{{ ui.icon('spark') }}AI</button>
+    </div>
+  </div>
+
+  <div class="summary-line">
+    <span><strong>{{ pf.total }}</strong> commesse</span>
+    <span class="sep"></span>
+    <span>{{ ui.dot('RED') }}{{ pf.critical }} critiche</span>
+    <span>{{ ui.dot('YELLOW') }}{{ pf.attention }} in attenzione</span>
+    <span>{{ ui.dot('GREEN') }}{{ pf.in_line }} in linea</span>
+    <span>{{ ui.dot('ND') }}{{ pf.inactive }} non valutabili</span>
+  </div>
+
+  {% if user.role == 'ADMIN' %}
+  <div class="banner"><div><strong>Attività Amministrazione</strong> · vedi le commesse con attività assegnate alla tua coda: {% for r in pf.rows %}<a href="/project/{{ r.code }}/attivita">{{ r.code }}</a>{% if not loop.last %}, {% endif %}{% else %}nessuna{% endfor %}.</div></div>
+  {% endif %}
+
+  <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:14px">
+    <div class="filter-tabs" id="lifecycleTabs">
+      <button type="button" class="active" data-lifecycle="">Tutte ({{ pf.total }})</button>
+      <button type="button" data-lifecycle="corso">In corso ({{ pf.lifecycle.corso }})</button>
+      <button type="button" data-lifecycle="avvio">In avvio ({{ pf.lifecycle.avvio }})</button>
+      <button type="button" data-lifecycle="chiuse">Chiuse ({{ pf.lifecycle.chiuse }})</button>
+      <button type="button" data-lifecycle="archiviate" data-tip="L'archiviazione delle commesse non è ancora disponibile">Archiviate ({{ pf.lifecycle.archiviate }})</button>
+    </div>
+    <div class="toolbar">
+      <span class="muted">Ordinamento:</span>
+      <button class="btn" type="button" onclick="portfolioSort('')"><strong>Priorità di controllo</strong></button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="table-wrap">
+      <table class="table portfolio-table" id="portfolioTable">
+        <colgroup><col class="c-code"><col class="c-project"><col class="c-phase">{% for _ in pf.domains %}<col class="c-dom">{% endfor %}<col><col class="c-chev"></colgroup>
+        <thead>
+          <tr>
+            <th>N°</th>
+            <th>Cliente / Progetto</th>
+            <th>Fase</th>
+            {% for key, label in pf.domains %}<th class="dom sort-head" data-sort="{{ key }}" onclick="portfolioSort('{{ key }}')">{{ label }}</th>{% endfor %}
+            <th>Principale esposizione</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in pf.rows %}
+          <tr class="clickable" data-href="/project/{{ r.code }}" data-search="{{ (r.code ~ ' ' ~ r.customer ~ ' ' ~ r.description ~ ' ' ~ r.offer)|lower }}"
+              data-lifecycle="{{ r.lifecycle }}" data-owners="{{ r.pm }}|{{ r.sales }}" data-rank="{{ loop.index0 }}"
+              {% for d in r.domains %} data-d-{{ d.key }}="{{ {'RED':0,'YELLOW':1,'GREEN':2,'ND':3}[d.state] }}"{% endfor %}>
+            <td class="code">{{ r.code }}</td>
+            <td class="project" title="{{ r.customer }} — {{ r.description }}"><strong>{{ r.customer }}</strong><small>{{ r.description }}</small></td>
+            <td><span class="pill {{ r.phase_tone }}">{{ r.phase_label }}</span></td>
+            {% for d in r.domains %}
+            <td class="dom"><a href="{{ d.url }}" onclick="event.stopPropagation()" aria-label="{{ d.label }}: {{ d.state_label }}">{{ ui.dot(d.state, d.label ~ ' · ' ~ d.state_label ~ ' — ' ~ d.recap) }}</a>{% if d.state == 'ND' %}<span class="hidden">N/D</span>{% endif %}</td>
+            {% endfor %}
+            <td class="expo">
+              <div class="expo-cell">
+                {{ ui.dot(r.exposure.tone) }}
+                <div><strong>{{ r.exposure.title }}</strong>
+                  {% if r.red_alerts or r.yellow_alerts %}<small>{% if r.red_alerts %}{{ r.red_alerts }} critic{{ 'a' if r.red_alerts == 1 else 'he' }}{% endif %}{% if r.red_alerts and r.yellow_alerts %} · {% endif %}{% if r.yellow_alerts %}{{ r.yellow_alerts }} in attenzione{% endif %}</small>{% endif %}
+                </div>
+              </div>
+            </td>
+            <td class="chev">›</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if not pf.rows %}{{ ui.empty('Nessuna commessa visibile', 'Non ci sono commesse assegnate al tuo profilo.') }}{% endif %}
+  </div>
+  <div class="pager">
+    <span><span id="portfolioCount">Mostra {{ [pf.total, 10]|min }} di {{ pf.total }} commesse</span> &nbsp; <a href="/portfolio.csv">{{ ui.icon('download') }} Esporta elenco</a></span>
+    <div class="pages" id="portfolioPages"></div>
+  </div>
+</div>
+{% endblock %}

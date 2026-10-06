@@ -12,5 +12,6 @@ Sono tutti **PROPOSTE**: diventano vincolanti solo dopo approvazione esplicita.
 | [05_ACCEPTANCE_AND_TEST_CONTRACT_V1.md](05_ACCEPTANCE_AND_TEST_CONTRACT_V1.md) | gate di accettazione e test obbligatori | A18 |
 | [06_IMPLEMENTATION_PLAN_V1.md](06_IMPLEMENTATION_PLAN_V1.md) | slice S0…S12, release v0.4 → v1.0 | A21 |
 | [07_OPEN_DECISIONS.md](07_OPEN_DECISIONS.md) | decisioni aperte e proposte | — |
+| [IMPLEMENTATION_GAPS.md](IMPLEMENTATION_GAPS.md) | elementi dei mockup non ancora alimentati dal modello dati | — |
 
 Autorità superiore: `docs/authority/` e `docs/visuals/`. Regole di lavoro: `CLAUDE.md`.

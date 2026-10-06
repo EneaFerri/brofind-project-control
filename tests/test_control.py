@@ -102,29 +102,31 @@ def test_control_quality_exposes_reconciliations_and_allocation_gaps():
 def test_project_page_explains_control_boundaries_cda_and_contract_evidence():
     with TestClient(app) as client:
         _reset(client)
-        response = client.get("/project/9028")
+        response = client.get("/project/9028/economics")
         assert response.status_code == 200
-        assert "Controllo economico" in response.text
+        assert "Economic Control" in response.text
         assert "Forecast finale" in response.text and "non consolidabile" in response.text
         assert "Budget non ancora coperto" in response.text
         assert "Centri di Analisi" in response.text
         assert "Un saving entra nel margine solo dopo conferma" in response.text
+        # Contract Baseline (drawer condiviso): evidenze dei PO cliente.
         assert "PO-PILOT-001" in response.text
         assert "PO-PILOT-002" in response.text
-        assert "Copertura informativa" in response.text
+        assert "Affidabilità dei dati" in response.text
 
 
 def test_9028_vda_view_is_progressive_and_uses_explicit_labels():
     with TestClient(app) as client:
         _reset(client)
-        response = client.get("/project/9028")
-        assert response.status_code == 200
-        assert 'data-vda-filter="relevant"' in response.text
-        assert "Acquisti da verificare" in response.text
-        assert ">Acquisti<" in response.text
-        assert ">Rischio<" in response.text
-        assert ">Residuo<" in response.text
-        assert "Stato economico" in response.text
+        economics = client.get("/project/9028/economics").text
+        assert 'onclick="toggleRows(' in economics
+        assert "Saving candidato" in economics
+        assert "Budget residuo" in economics
+        procurement = client.get("/project/9028/procurement").text
+        assert "Vista per voce di analisi (VdA)" in procurement
+        assert ">Stadio<" in procurement
+        assert ">Stato controllo<" in procurement
+        assert "Verifica urgente" in procurement
 
 
 def test_dashboard_renders_nd_as_explicit_neutral_state():
@@ -132,9 +134,9 @@ def test_dashboard_renders_nd_as_explicit_neutral_state():
         _reset(client)
         response = client.get("/")
         assert response.status_code == 200
-        assert "health nd" in response.text
+        assert 'class="dot ND"' in response.text
         assert ">N/D<" in response.text
-        assert "Controllo disponibile" in response.text
+        assert "non valutabili" in response.text
 
 
 def test_9028_procurement_engine_flags_analyzers_without_inventing_delay():

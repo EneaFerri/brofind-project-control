@@ -1,0 +1,55 @@
+{% extends "project_base.html" %}
+{% block page_title %}Procurement Control{% endblock %}
+{% block page %}
+<div class="page-head">
+  <div><h1>Procurement Control</h1><p>Stato forniture principali, avanzamento e prossime scadenze</p></div>
+  <div class="toolbar">
+    <label class="search">{{ ui.icon('search') }}<input class="input" style="width:240px" type="search" placeholder="Cerca fornitura, VdA…" oninput="filterTable('procTable', this.value)"></label>
+    <button class="btn primary" type="button" disabled data-tip="I Procurement Item arrivano con la slice S6">{{ ui.icon('plus') }}Aggiungi Procurement Item</button>
+  </div>
+</div>
+
+{% if not pr.available %}
+<div class="card">{{ ui.empty('Dati acquisti non disponibili', 'Importa i dati Galileo della commessa (Fonti) per vedere lo stato delle forniture.') }}</div>
+{% else %}
+<div class="banner"><div><strong>Vista per voce di analisi (VdA).</strong> Il controllo per singola fornitura — need date, data promessa dal fornitore, forecast corrente — richiede i Procurement Item (slice S6). Le colonne non ancora alimentate sono indicate come N/D.{% if pr.delivery_context %} · {{ pr.delivery_context }}{% endif %}</div></div>
+
+<div class="grid kpi-4">
+  <div class="card donut-wrap">{{ ui.donut(pr.segments, pr.total, 'VdA') }}{{ ui.legend(pr.segments) }}</div>
+  {{ ui.icon_kpi('Item critici', pr.critical, sub=pr.watch ~ ' da presidiare', tone='red', symbol='!') }}
+  {{ ui.icon_kpi('Prossime scadenze RFQ / ordini', none, sub='richiede need date', tone='blue', symbol='▦') }}
+  {{ ui.icon_kpi('Ritardi fornitori', none, sub='richiede data promessa', tone='orange', symbol='◷') }}
+</div>
+
+<div class="card mt">
+  <div class="card-head"><h2>Elenco forniture principali ({{ pr.total }})</h2></div>
+  <div class="table-wrap">
+    <table class="table" id="procTable">
+      <thead><tr><th>#</th><th>Item / Descrizione</th><th>Fornitore</th><th>Stadio</th><th>Prossima scadenza</th><th>Need date</th><th>Promise</th><th>Forecast</th><th>Stato controllo</th><th>Impatto</th></tr></thead>
+      <tbody>
+      {% for r in pr.rows %}
+        <tr data-search="{{ (r.name ~ ' ' ~ r.vda_code)|lower }}">
+          <td>{{ loop.index }}</td>
+          <td><strong>{{ r.name }}</strong><small>{{ r.vda_code }} · {{ r.nature }} · budget {{ r.budget|eur }}</small></td>
+          <td>{{ ui.nd() }}</td>
+          <td><span class="pill {{ r.stage_tone }}">{{ r.stage }}</span></td>
+          <td>{{ ui.nd() }}</td>
+          <td>{{ ui.nd() }}</td>
+          <td>{{ ui.nd() }}</td>
+          <td>{{ ui.nd() }}</td>
+          <td><span class="pill {{ r.control_tone }}" {% if r.reason %}data-tip="{{ r.reason }}"{% endif %}>{{ r.control }}</span></td>
+          <td>{{ ui.nd() }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="grid c-1-1-1 mt">
+  <div class="card"><div class="card-head"><h3>Prossime scadenze</h3></div>{{ ui.empty('Non ancora disponibili', 'Le scadenze RFQ e ordine derivano da need date e lead time (slice S6).') }}</div>
+  <div class="card"><div class="card-head"><h3>Fornitori critici</h3></div>{{ ui.empty('Non ancora disponibili', 'Il fornitore e il ritardo stimato arrivano con i dati d’ordine per fornitura.') }}</div>
+  <div class="card"><div class="card-head"><h3>Stato per stadio</h3></div><div class="donut-wrap">{{ ui.donut(pr.segments, pr.total, 'VdA') }}{{ ui.legend(pr.segments) }}</div></div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "project_base.html" %}
+{% block page_title %}Criticità{% endblock %}
+{% block page %}
+<div class="page-head">
+  <div><h1>Criticità</h1><p>Segnali che richiedono attenzione e loro presa in carico</p></div>
+</div>
+<div class="banner gray"><div>Questi sono i <strong>segnali di attenzione</strong> calcolati dalle regole sulle fonti. Restano aperti finché la condizione nella fonte non cambia: creare o chiudere un'attività non li risolve. La gestione formale delle criticità (obiettivo, copertura, percorso di correzione) arriverà con la slice S10.</div></div>
+<div class="summary-line" style="font-size:16px">
+  <span>{{ ui.dot('RED') }}{{ cr.red }} critici</span><span>{{ ui.dot('YELLOW') }}{{ cr.yellow }} in attenzione</span>
+</div>
+<div class="card" id="principal-alerts">
+  {% for a in cr.rows %}
+  <div class="att-list" style="padding:0 20px"><div data-workspace-alert="{{ a.id }}" class="alert" data-dimension="{{ a.domain }}">
+    {{ ui.dot(a.tone) }}
+    <div class="body">
+      <h4>{{ a.title }}</h4>
+      <p>{{ a.description }}</p>
+      <span class="tag">{{ a.domain_label }}</span>{% if a.source_ref %}<span class="tag">Fonte: {{ a.source_ref }}</span>{% endif %}<span class="tag">{{ {'CONFIRMED':'Dato confermato','CALCULATED':'Calcolato','INFERRED':'Dedotto'}.get(a.data_status, a.data_status) }}</span>
+    </div>
+    <div class="who">{% if a.linked_action %}In gestione: <strong>{{ a.linked_action.owner }}</strong><br>Scadenza {{ a.linked_action.due_date|dmy }}<br><a href="/project/{{ h.code }}/attivita#action-{{ a.linked_action.id }}">Vai all'attività</a>{% else %}<span class="muted">Non presa in carico</span>{% endif %}</div>
+    <div style="display:grid; gap:6px">
+      {% if not a.linked_action %}<button class="btn small primary" type="button" onclick="createAction({{ a.id }})">Crea attività</button>{% endif %}
+      {% if a.url %}<a class="btn small" href="{{ a.url }}">Apri dominio</a>{% endif %}
+    </div>
+  </div></div>
+  {% else %}
+  {{ ui.empty('Nessun segnale aperto', 'Non ci sono condizioni che richiedono attenzione sulle fonti disponibili.') }}
+  {% endfor %}
+</div>
+{% endblock %}
