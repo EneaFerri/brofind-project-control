@@ -18,3 +18,8 @@
 | OD-12 | Hosting in rete aziendale: server Windows o Linux/Docker, chi lo gestisce | S12 | da definire con IT Brofind |
 | OD-13 | Chi approva i gate (A22) | tutte | indicare il Product Owner |
 | OD-14 | Rendere pubblico il repository: con quali dati e documenti (mockup con nomi clienti) | prima della pubblicazione | sostituire i mockup con versioni anonimizzate; verificare la storia Git |
+| OD-15 | Meccanismo di estrazione Galileo | Fase 2 di `08_SOURCE_INTEGRATION_PLAN` | partire da export pianificati su cartella, poi viste DB in sola lettura |
+| OD-16 | Contenitore Outlook di commessa | Fase 3 | casella o cartella condivisa dedicata per commessa |
+| OD-17 | Struttura standard delle cartelle di commessa | Fase 1 | definirla con i PM; il Cockpit propone e il PM conferma la mappatura |
+| OD-18 | Frequenza di aggiornamento e soglie di freschezza per fonte | Fasi 1–4 | giornaliera per Galileo e cartelle; oraria per Outlook |
+| OD-19 | Valutazione privacy per la lettura delle email | Fase 3 | DPIA con il DPO prima della Fase 3 |
