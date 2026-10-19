@@ -6,28 +6,35 @@ PC.
 
 ## Prerequisito Python
 
-Il runtime demo supportato è **Python 3.13.x**.
+Il runtime demo supporta **Python 3.13, 3.14 e 3.15** (`requires-python`
+in pyproject.toml).
 
-- Python 3.13.15 è stato verificato con requirements.txt.
-- Python 3.14 non è supportato in questo change-set: pandas==2.2.3 può
-  richiedere una build locale bloccata da Smart App Control.
-- Non aggiornare pandas o altre dipendenze sul PC della demo.
+- Da v1.0.1 tutte le dipendenze di requirements.txt sono disponibili come
+  wheel precompilate per 3.13, 3.14 e 3.15 su Windows, Linux e macOS: il
+  setup non richiede compilazione locale (bloccata da Smart App Control).
+  Unica eccezione: red-black-tree-mod (dipendenza di extract-msg) è
+  distribuito solo come sorgente, ma è puro Python e non serve compilatore.
+- Per questo sono stati rimossi pandas (non usato dal codice) e pyyaml
+  (incluso da uvicorn[standard], serve solo a --log-config YAML): gli altri
+  extra "standard" di uvicorn sono elencati esplicitamente.
+- Non aggiornare le dipendenze sul PC della demo.
 
-start_demo.bat rifiuta una .venv creata con una versione diversa da 3.13.x
-e mostra un errore specifico per Python 3.14.
+start_demo.bat cerca, in ordine, Python 3.15, 3.14 e 3.13 e rifiuta una
+.venv creata con una versione diversa.
 
 ## Trasferimento sul PC Brofind
 
 1. Copiare o estrarre l'intero repository senza .venv, cache, database
    runtime o log.
-2. Installare Python 3.13.x includendo il Python Launcher per Windows.
+2. Installare Python 3.13, 3.14 o 3.15 includendo il Python Launcher per
+   Windows.
 3. Per il primo setup, assicurarsi che il PC possa installare i pacchetti
    indicati in requirements.txt.
 4. Eseguire start_demo.bat.
 
 Se .venv non esiste, lo script:
 
-1. cerca esplicitamente Python 3.13.x;
+1. cerca una versione supportata di Python (3.15, poi 3.14, poi 3.13);
 2. crea <repository>\.venv;
 3. installa requirements.txt;
 4. verifica import e coerenza delle dipendenze;

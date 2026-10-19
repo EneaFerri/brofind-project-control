@@ -18,7 +18,7 @@ Regole complete per chi sviluppa: [`CLAUDE.md`](CLAUDE.md).
 
 ## Avvio della demo locale
 
-Requisito: **Python 3.13.x** (3.14 non supportato).
+Requisito: **Python 3.13, 3.14 o 3.15**.
 
 | Sistema | Comando |
 |---|---|
@@ -28,12 +28,12 @@ Requisito: **Python 3.13.x** (3.14 non supportato).
 Al primo avvio viene creata la `.venv` e installate le dipendenze; poi il Cockpit è disponibile su <http://127.0.0.1:8080> (controllo: `/health`).
 Dettagli su runtime, database e backup: [`docs/DEMO_RUNTIME.md`](docs/DEMO_RUNTIME.md). Percorso guidato del caso demo: [`docs/DEMO_B1_RUNBOOK.md`](docs/DEMO_B1_RUNBOOK.md).
 
-> Se la `.venv` è stata creata con una versione precedente del progetto, rimuoverla e rilanciare lo script: è stata aggiunta la dipendenza `alembic`.
+> Se la `.venv` è stata creata con una versione precedente del progetto, rimuoverla e rilanciare lo script: le dipendenze sono cambiate (aggiunto `alembic`; da v1.0.1 rimossi `pandas` e `pyyaml`).
 
 ## Sviluppo
 
 ```bash
-python3.13 -m venv .venv
+python3.13 -m venv .venv              # oppure python3.14 / python3.15
 .venv/bin/pip install -r requirements.txt -r requirements-dev.txt
 .venv/bin/pre-commit install          # ruff a ogni commit
 .venv/bin/python -m pytest            # test su database isolato in data/test

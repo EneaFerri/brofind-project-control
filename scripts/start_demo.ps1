@@ -32,17 +32,24 @@ function Get-PythonVersion {
     return ($version | Select-Object -Last 1).Trim()
 }
 
-function Find-Python313 {
+# Versioni supportate, dalla preferita: allineate a requires-python in pyproject.toml.
+$supportedMinorVersions = @("3.15", "3.14", "3.13")
+$supportedVersionPattern = "^3\.(13|14|15)\.\d+$"
+$supportedVersionsLabel = "Python 3.13, 3.14 o 3.15"
+
+function Find-SupportedPython {
     $foundVersions = @()
 
     $pyLauncher = Get-Command "py.exe" -ErrorAction SilentlyContinue
     if ($pyLauncher) {
-        $version = Get-PythonVersion -FilePath $pyLauncher.Source -PrefixArguments @("-3.13")
-        if ($version -match "^3\.13\.\d+$") {
-            return @{
-                FilePath = $pyLauncher.Source
-                PrefixArguments = @("-3.13")
-                Version = $version
+        foreach ($minorVersion in $supportedMinorVersions) {
+            $version = Get-PythonVersion -FilePath $pyLauncher.Source -PrefixArguments @("-$minorVersion")
+            if ($version -match "^$([regex]::Escape($minorVersion))\.\d+$") {
+                return @{
+                    FilePath = $pyLauncher.Source
+                    PrefixArguments = @("-$minorVersion")
+                    Version = $version
+                }
             }
         }
     }
@@ -56,7 +63,7 @@ function Find-Python313 {
         if ($version) {
             $foundVersions += $version
         }
-        if ($version -match "^3\.13\.\d+$") {
+        if ($version -match $supportedVersionPattern) {
             return @{
                 FilePath = $command.Source
                 PrefixArguments = @()
@@ -65,27 +72,24 @@ function Find-Python313 {
         }
     }
 
-    if ($foundVersions | Where-Object { $_ -match "^3\.14\." }) {
-        throw "Python 3.14 non e supportato per la demo: usare Python 3.13.x. Non aggiornare le dipendenze durante il setup."
+    if ($foundVersions) {
+        throw "Trovato Python $($foundVersions -join ', '), non supportato per la demo: installare $supportedVersionsLabel e rilanciare start_demo.bat."
     }
-    throw "Python 3.13.x non trovato. Installare Python 3.13 e rilanciare start_demo.bat."
+    throw "Python non trovato. Installare $supportedVersionsLabel e rilanciare start_demo.bat."
 }
 
 if (Test-Path -LiteralPath $venvDirectory) {
     if (-not (Test-Path -LiteralPath $venvPython -PathType Leaf)) {
-        throw "La cartella .venv esiste ma e incompleta. Rimuoverla e rilanciare start_demo.bat con Python 3.13.x."
+        throw "La cartella .venv esiste ma e incompleta. Rimuoverla e rilanciare start_demo.bat con $supportedVersionsLabel."
     }
     $venvVersion = Get-PythonVersion -FilePath $venvPython
-    if ($venvVersion -notmatch "^3\.13\.\d+$") {
-        if ($venvVersion -match "^3\.14\.") {
-            throw "La .venv usa Python $venvVersion. Python 3.14 non e supportato: ricreare .venv con Python 3.13.x."
-        }
-        throw "La .venv usa Python $venvVersion. Per la demo e richiesto Python 3.13.x."
+    if ($venvVersion -notmatch $supportedVersionPattern) {
+        throw "La .venv usa Python $venvVersion, non supportato: rimuoverla e rilanciare start_demo.bat con $supportedVersionsLabel."
     }
     Write-Host "Ambiente locale rilevato: Python $venvVersion. Nessuna reinstallazione dipendenze."
 }
 else {
-    $launcher = Find-Python313
+    $launcher = Find-SupportedPython
     Write-Host "Creazione .venv locale con Python $($launcher.Version)..."
     & $launcher.FilePath @($launcher.PrefixArguments) -m venv $venvDirectory
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $venvPython -PathType Leaf)) {
@@ -106,7 +110,6 @@ import httpx
 import jinja2
 import multipart
 import openpyxl
-import pandas
 import pypdf
 import docx
 import extract_msg

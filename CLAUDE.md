@@ -48,7 +48,7 @@ UI in italiano (eccetto le etichette di navigazione canoniche del Shared UI Shel
 ## Comandi
 
 ```bash
-./start_demo.sh                       # macOS/Linux, Python 3.13, runtime demo su :8080
+./start_demo.sh                       # macOS/Linux, Python 3.13–3.15, runtime demo su :8080
 start_demo.bat                        # Windows
 .venv/bin/python -m pip install -r requirements.txt -r requirements-dev.txt
 .venv/bin/python -m pytest            # usa DB isolato sotto data/test
@@ -60,4 +60,4 @@ BROFIND_RUNTIME=development .venv/bin/alembic revision --autogenerate -m "..."  
 - UI: ogni pagina di commessa estende `templates/project_base.html` (header, navigazione, drawer Fonti/AI/Contratto/Affidabilità); componenti in `templates/_macros.html`; nessuna libreria frontend esterna. Dato mancante → `ui.nd()`, mai verde.
 - Fine riga LF (vedi `.gitattributes`); `demo/b1/` non va mai modificato (verificato da `SHA256SUMS`).
 
-Runtime e database: `docs/DEMO_RUNTIME.md`. Python supportato: **3.13.x** (non 3.14).
+Runtime e database: `docs/DEMO_RUNTIME.md`. Python supportato: **3.13, 3.14, 3.15** (nuove dipendenze: solo se hanno wheel per tutte e tre, niente build locali sul PC demo).

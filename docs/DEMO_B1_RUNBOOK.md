@@ -30,5 +30,5 @@ Eseguire `stop_demo.bat`. Arresta esclusivamente il processo `.venv` che esegue 
 
 1. Per ripartire con dati demo puliti: eseguire `stop_demo.bat`, rinominare `data\demo\brofind_demo.db` in `brofind_demo.db.bak` e rilanciare `start_demo.bat`.
 2. Se `/health` non risponde, controllare `data/demo/logs/server.stderr.log`.
-3. Se la `.venv` è incompleta o non è Python 3.13, eliminarla manualmente e rilanciare `start_demo.bat` per il setup iniziale.
+3. Se la `.venv` è incompleta o non è Python 3.13, 3.14 o 3.15, eliminarla manualmente e rilanciare `start_demo.bat` per il setup iniziale.
 4. Se mancano le sorgenti B1, rieseguire `scripts/prepare_b1_demo_sources.py`.

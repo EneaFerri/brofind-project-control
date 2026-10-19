@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "brofind-project-control-v0"
-version = "1.0.0"
-requires-python = ">=3.13,<3.14"
+version = "1.0.1"
+requires-python = ">=3.13,<3.16"
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
