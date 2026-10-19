@@ -1,8 +1,12 @@
 # 08 — Collegamento delle fonti dati al Control Cockpit
 
 **Stato:** PROPOSTA — piano di lavoro, nessuna modifica al codice
-**Data:** 2026-10-06
+**Data:** 2026-10-06 · aggiornato 2026-10-12 (ambiente di posta)
 **Fonti principali:** cartelle dati sul server aziendale · comunicazioni Outlook · ERP Galileo
+
+> **Ambiente di posta Brofind (confermato 2026-10-12):** gli utenti usano Outlook con licenze **Microsoft 365**, ma le caselle **non sono su Exchange Online**. Conseguenze per questo piano:
+> - **Microsoft Graph non è utilizzabile per leggere la posta**: le API mail di Graph funzionano solo su caselle Exchange Online. La Fase 3 si basa quindi sul protocollo esposto dal server di posta effettivo (da censire in Fase 0).
+> - Il tenant Microsoft 365 include comunque **Microsoft Entra ID**: il login aziendale (OD-04, ADR-004) resta percorribile e non dipende da dove risiede la posta.
 
 Questo documento descrive gli step per collegare le tre fonti al Cockpit nel rispetto del principio **READ MANY, WRITE LITTLE**: il Cockpit legge, non scrive mai nelle fonti.
 
@@ -36,7 +40,7 @@ data_sources/<codice commessa>/
 
 ```
  Cartelle server ─┐
- Outlook (Graph) ─┼─► Adapter (sola lettura) ─► Osservazioni + impronta ─► Read model storicizzato ─► Regole / superfici
+ Posta (IMAP/EWS)─┼─► Adapter (sola lettura) ─► Osservazioni + impronta ─► Read model storicizzato ─► Regole / superfici
  Galileo ─────────┘          │                                                  │
                              └─► Registro import (esito, errori, durata)         └─► Freschezza per fonte e commessa
 ```
@@ -50,7 +54,7 @@ Regole comuni a tutti gli adapter:
 5. **Errori visibili**: un import fallito non cancella i dati precedenti e compare nelle Fonti della commessa.
 6. **Nessun dato reale nel repository**: test e demo usano solo dati fittizi o anonimizzati.
 
-Il Cockpit gira su un server della rete aziendale (slice S12); da lì deve poter raggiungere file server, Microsoft 365 e Galileo.
+Il Cockpit gira su un server della rete aziendale (slice S12); da lì deve poter raggiungere file server, server di posta (IMAP/EWS), Microsoft Entra ID (solo login) e Galileo.
 
 ---
 
@@ -66,7 +70,11 @@ Da svolgere con IT Brofind, Amministrazione, un PM pilota e, per Galileo, Sanmar
 - [ ] Dove stanno i documenti contrattuali (ordine, contratto, KOM) e la Document List, se esiste.
 
 ### Outlook
-- [ ] Brofind usa Microsoft 365 / Exchange Online? (OD-04)
+- [x] Brofind usa Microsoft 365 con Outlook; le caselle **non** sono su Exchange Online (confermato 2026-10-12).
+- [ ] Dove risiedono le caselle: **Exchange Server on-premise** o **provider di posta esterno** (hosting IMAP/POP3)? Verificabile da IT, ad esempio dai record MX del dominio brofind.com.
+- [ ] Protocolli di accesso abilitati sul server di posta: IMAP (con TLS), EWS (solo Exchange on-premise), POP3. È possibile un account di servizio dedicato?
+- [ ] Le mail restano sul server o vengono scaricate in file `.pst` locali (POP3)? Nel secondo caso il server non contiene lo storico e la lettura diretta non è possibile.
+- [ ] Il tenant Microsoft 365 usa il dominio brofind.com come dominio verificato e gli utenti accedono con l'account @brofind.com? (necessario per il login Entra ID, OD-04)
 - [ ] Come sono organizzate oggi le mail di commessa: casella condivisa per commessa, cartella condivisa, codice commessa nell'oggetto, nessuna regola?
 - [ ] Quali caselle è lecito leggere: solo caselle/cartelle di commessa dedicate (raccomandato) o anche caselle personali (sconsigliato)?
 - [ ] Referente privacy/DPO e regole aziendali sul trattamento delle email.
@@ -143,22 +151,34 @@ Raccomandazione: partire con **B** (riusa l'adapter attuale, che già valida il 
 
 ## 6. Fase 3 — Outlook
 
-### Meccanismo raccomandato: Microsoft Graph in sola lettura
+Outlook è solo il client: il Cockpit legge dal **server di posta** su cui risiedono le caselle. Poiché la posta non è su Exchange Online, Microsoft Graph è escluso; il meccanismo dipende dall'esito della Fase 0 (OD-20).
+
+### Opzioni, in ordine di preferenza da validare in Fase 0
+
+| Opzione | Quando si applica | Pro | Contro |
+|---|---|---|---|
+| **A. IMAP in sola lettura** su caselle di commessa dedicate | provider esterno o Exchange on-premise con IMAP abilitato | protocollo standard, indipendente dal fornitore; selezione della cartella in sola lettura (`EXAMINE`) e lettura senza segnare come letto (`BODY.PEEK`) | autenticazione con password dell'account di servizio (o password per app), da custodire con cura; nessun filtro lato server per commessa |
+| **B. EWS in sola lettura** | solo Exchange Server on-premise | accesso nativo a caselle e cartelle condivise, sincronizzazione incrementale | legato a Exchange; account di servizio con permesso di lettura sulle sole caselle di commessa da configurare sul server |
+| **C. Cartella di esportazione** (`.msg`/`.eml` sul server) | sempre; unica via se la posta è scaricata in `.pst` locali (POP3) | già supportata dalla Fase 1, nessun accesso al server di posta | manuale o semi-manuale; copertura dipende dalla disciplina dei PM |
+
+Raccomandazione: **A** se il server di posta espone IMAP con TLS (vale sia per un provider esterno sia per Exchange on-premise), **B** solo se IMAP non è disponibile su Exchange on-premise, **C** come fase transitoria e come ripiego. Se in futuro Brofind migra la posta su Exchange Online, l'adapter può passare a Microsoft Graph (`Mail.Read` con accesso limitato alle caselle di commessa) senza cambiare il modello dati.
+
+### Step
 
 | Step | Attività | Responsabile |
 |---|---|---|
-| 3.1 | Decidere il **contenitore di commessa**: casella condivisa per commessa o cartella condivisa (OD aperta nel Product Freeze §29). Raccomandato: un contenitore dedicato per commessa, così il Cockpit non legge mai caselle personali | Direzione + IT |
-| 3.2 | Registrare un'applicazione in **Microsoft Entra ID** con permesso `Mail.Read` di tipo applicazione, con consenso amministratore | IT |
-| 3.3 | Limitare l'accesso **solo ai contenitori di commessa** tramite Application Access Policy / RBAC di Exchange Online | IT |
-| 3.4 | Conservare il segreto o il certificato dell'applicazione fuori dal repository (variabili d'ambiente o archivio segreti del server) | IT + Sviluppo |
-| 3.5 | Adapter Outlook: sincronizzazione **incrementale** (delta query), deduplica per identificativo del messaggio, salvataggio di mittente, destinatari, data, oggetto, testo e riferimento agli allegati | Sviluppo |
+| 3.1 | Decidere il **contenitore di commessa**: casella dedicata per commessa (es. indirizzo di commessa messo in copia o alimentato da regola di inoltro) o cartella condivisa, compatibilmente con il server di posta (OD-16; scelta tecnica lasciata aperta dal Product Freeze). Raccomandato: un contenitore dedicato per commessa, così il Cockpit non legge mai caselle personali | Direzione + IT |
+| 3.2 | Scegliere il meccanismo (A/B/C) in base al server di posta censito in Fase 0 (OD-20) | IT + Sviluppo |
+| 3.3 | Creare un **account di servizio** con accesso in sola lettura **solo ai contenitori di commessa** (credenziali dedicate sul provider, oppure permessi di lettura su Exchange on-premise); nessun accesso a caselle personali | IT |
+| 3.4 | Conservare password o certificati fuori dal repository (variabili d'ambiente o archivio segreti del server); connessioni solo cifrate (IMAPS / HTTPS) | IT + Sviluppo |
+| 3.5 | Adapter posta: sincronizzazione **incrementale** (IMAP: `UIDVALIDITY` + `UID`; EWS: stato di sincronizzazione della cartella), deduplica per `Message-ID`, salvataggio di mittente, destinatari, data, oggetto, testo e riferimento agli allegati; l'adapter non sposta, non cancella e non marca i messaggi | Sviluppo |
 | 3.6 | Associazione alla commessa: automatica se il contenitore è dedicato; proposta da confermare se si usa il codice nell'oggetto | Sviluppo |
 | 3.7 | Analisi dei segnali (solleciti, richieste documenti, promesse di pagamento) con il motore esistente: restano **proposte da confermare** | Sviluppo |
 | 3.8 | Valutazione privacy con il DPO: minimizzazione dei dati, tempi di conservazione, informativa ai dipendenti | DPO + Direzione |
 
-Il Cockpit **non invia** email: il permesso richiesto è solo di lettura.
+Il Cockpit **non invia** email: l'accesso richiesto è solo di lettura (nessun SMTP).
 
-**Fase transitoria:** finché Graph non è attivo, i PM possono salvare le mail rilevanti (`.msg`/`.eml`) nella cartella Outlook della commessa sul server; la Fase 1 le legge già.
+**Fase transitoria:** finché l'adapter non è attivo, i PM possono salvare le mail rilevanti (`.msg`/`.eml`) nella cartella Outlook della commessa sul server; la Fase 1 le legge già.
 
 **Criterio di completamento:** per le commesse pilota le nuove mail compaiono nel Cockpit entro la frequenza concordata, senza duplicati e senza accesso a caselle non autorizzate.
 
@@ -168,7 +188,7 @@ Il Cockpit **non invia** email: il permesso richiesto è solo di lettura.
 
 | Tema | Attività |
 |---|---|
-| Pianificazione | job periodici per scansione cartelle, import Galileo e sincronizzazione Outlook, con blocco per evitare esecuzioni sovrapposte |
+| Pianificazione | job periodici per scansione cartelle, import Galileo e sincronizzazione della posta, con blocco per evitare esecuzioni sovrapposte |
 | Monitoraggio | stato di ogni fonte e dell'ultimo aggiornamento in una pagina di amministrazione; avviso se una fonte non si aggiorna oltre soglia |
 | Freschezza | soglie per fonte nei Settings (globale → commessa → item), mostrate all'utente |
 | Sicurezza | account di servizio separati per fonte, permessi minimi, rotazione dei segreti, log senza contenuti sensibili |
@@ -184,7 +204,7 @@ Il Cockpit **non invia** email: il permesso richiesto è solo di lettura.
 | 0 Ricognizione | — | — (può partire subito) |
 | 1 Cartelle server | server aziendale (S12) o accesso di prova | S8 Documents |
 | 2 Galileo | Fase 1 (se export su cartella) | S4 Economics, S5 Billing & Payment, S6 Procurement |
-| 3 Outlook | Entra ID (OD-04), decisione contenitore, DPO | S9 Technical, S10 Conversazioni |
+| 3 Outlook | server di posta censito e meccanismo scelto (OD-20), decisione contenitore (OD-16), DPO (OD-19) | S9 Technical, S10 Conversazioni |
 | 4 Esercizio | Fasi 1–3 | S12 |
 
 ## 9. Decisioni da aggiungere al registro
@@ -192,7 +212,8 @@ Il Cockpit **non invia** email: il permesso richiesto è solo di lettura.
 | ID | Decisione | Proposta |
 |---|---|---|
 | OD-15 | Meccanismo di estrazione Galileo | partire da export pianificati su cartella, poi viste DB in sola lettura |
-| OD-16 | Contenitore Outlook di commessa | casella o cartella condivisa dedicata per commessa |
+| OD-16 | Contenitore Outlook di commessa | casella o cartella condivisa dedicata per commessa, compatibile con il server di posta |
 | OD-17 | Struttura standard delle cartelle di commessa | definirla con i PM; il Cockpit propone e il PM conferma la mappatura |
 | OD-18 | Frequenza di aggiornamento e soglie di freschezza per fonte | giornaliera per Galileo e cartelle; oraria per Outlook |
 | OD-19 | Valutazione privacy per la lettura delle email | DPIA con il DPO prima della Fase 3 |
+| OD-20 | Meccanismo di lettura della posta (non su Exchange Online) | IMAP in sola lettura se disponibile; EWS solo su Exchange on-premise; cartella di esportazione come ripiego |

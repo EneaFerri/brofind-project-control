@@ -11,7 +11,7 @@
 ## Adapter target
 - GalileoAdapter: da definire dopo verifica API/DB/export Sanmarco.
 - PipedriveAdapter: REST API/webhook.
-- OutlookAdapter: Microsoft Graph, con scope limitato alle superfici di progetto autorizzate.
+- OutlookAdapter: lettura in sola lettura dal server di posta (IMAP o EWS; la posta Brofind non è su Exchange Online, quindi niente Microsoft Graph), con scope limitato ai contenitori di commessa autorizzati. Vedi `docs/v1/08_SOURCE_INTEGRATION_PLAN.md`.
 - FileServerAdapter: lettura controllata delle cartelle commessa / gateway.
 
 ## Regola di autorità

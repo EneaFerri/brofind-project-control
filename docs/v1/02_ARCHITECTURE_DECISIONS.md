@@ -41,7 +41,7 @@ Le ADR riguardano scelte **tecniche**. Non modificano la semantica di prodotto, 
 
 ## ADR-004 — Identità e login
 
-- **Contesto:** utenti con account aziendale brofind.com; Brofind usa Outlook, quindi verosimilmente Microsoft 365 / Entra ID (**da confermare**, OD-04).
+- **Contesto:** utenti con account aziendale brofind.com; Brofind usa Outlook con licenze Microsoft 365 (confermato 2026-10-12), quindi dispone di un tenant Microsoft Entra ID. La posta **non** è su Exchange Online: questo non incide sul login, ma esclude Microsoft Graph per la lettura delle email (vedi `08_SOURCE_INTEGRATION_PLAN.md`, OD-20). Da verificare che brofind.com sia dominio verificato del tenant (OD-04).
 - **Decisione proposta:** interfaccia `AuthProvider` con due implementazioni:
   1. **DevLoginProvider**: scelta dell'utente demo da un elenco. Attivo **solo** nei runtime `demo`, `development` e `test`; rifiutato all'avvio in produzione.
   2. **EntraIdProvider**: login OIDC con Microsoft Entra ID, limitato al tenant aziendale; utente creato o aggiornato al primo accesso con email e nome.
