@@ -9,7 +9,7 @@ PC.
 Il runtime demo supporta **Python 3.13, 3.14 e 3.15** (`requires-python`
 in pyproject.toml).
 
-- Da v1.0.1 tutte le dipendenze di requirements.txt sono disponibili come
+- Da v1.0.0 tutte le dipendenze di requirements.txt sono disponibili come
   wheel precompilate per 3.13, 3.14 e 3.15 su Windows, Linux e macOS: il
   setup non richiede compilazione locale (bloccata da Smart App Control).
   Unica eccezione: red-black-tree-mod (dipendenza di extract-msg) è
@@ -45,6 +45,35 @@ validata e il Cockpit può partire offline.
 
 La .venv non è trasferibile tra PC. Se è incompleta o usa una versione Python
 non supportata, rimuoverla e ripetere il setup sul PC di destinazione.
+
+## Pacchetto portatile per Windows (demo per i colleghi)
+
+Per chi deve solo provare la demo, senza installare Python né usare il
+terminale, si distribuisce uno zip autosufficiente:
+
+    .venv/bin/python scripts/build_windows_portable.py
+
+Richiede `uv` e accesso a Internet sul PC che crea lo zip. Produce
+`dist/Brofind_Cockpit_Demo_v<versione>_Windows.zip` (circa 25 MB) con
+Python 3.13 embeddable, le dipendenze per Windows x64, l'applicazione e le
+fonti del caso B1 già predisposte. Le dipendenze che la demo non carica mai
+(driver PostgreSQL, crittografia per file Office protetti, reload e WebSocket
+di uvicorn) e i file di sola compilazione sono esclusi: l'elenco motivato è
+`DEMO_EXCLUDED_PACKAGES` nello script. Lo stesso zip si ottiene, provato su
+Windows, dal workflow GitHub Actions `windows-portable` (avvio manuale o tag
+`v*`).
+
+Per l'utente finale valgono le istruzioni in `LEGGIMI - Come avviare.txt`:
+estrarre lo zip, doppio clic su **Avvia Cockpit**, chiudere la finestra per
+spegnere. Il server gira nella finestra della console (niente processi
+nascosti), usa la prima porta libera tra 8080 e 8099 e salva il database in
+`sistema\data\demo\`. **Ripristina dati demo** sposta il database in
+`sistema\data\demo\backup\`, senza cancellarlo.
+
+Lo zip contiene i dati demo (inclusa la commessa pilota anonimizzata):
+distribuirlo solo internamente.
+
+Sorgenti del pacchetto: `packaging/Cockpit_zip_WindowsVersion/`.
 
 ## Dipendenze e test di sviluppo
 

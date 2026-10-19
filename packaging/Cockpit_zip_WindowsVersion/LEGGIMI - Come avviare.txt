@@ -1,0 +1,58 @@
+BROFIND CONTROL COCKPIT - DEMO
+Come avviarlo in 3 passi (non serve installare nulla)
+======================================================
+
+PRIMA VOLTA
+
+  1. ESTRAI LO ZIP
+     Clic con il tasto destro sul file .zip > "Estrai tutto..." > "Estrai".
+     (Attendi la fine: può servire un minuto.)
+
+  2. AVVIA
+     Apri la cartella estratta e fai doppio clic su "Avvia Cockpit".
+
+  3. USA IL COCKPIT
+     Dopo qualche secondo il Cockpit si apre da solo nel browser.
+     Resta aperta anche una finestra nera: lasciala aperta
+     (puoi ridurla a icona). Finché è aperta, il Cockpit funziona.
+
+
+PER SPEGNERE
+
+  Chiudi la finestra nera con la X in alto a destra.
+  I dati che hai inserito restano salvati per la volta successiva.
+
+
+LE VOLTE SUCCESSIVE
+
+  Doppio clic su "Avvia Cockpit". Basta.
+
+
+SE QUALCOSA NON VA
+
+  - Compare una finestra blu "Windows ha protetto il PC":
+    clic su "Ulteriori informazioni" > "Esegui comunque".
+
+  - Compare un avviso "Impossibile verificare l'autore": clic su "Esegui".
+
+  - Il browser non si apre da solo:
+    apri il browser e scrivi l'indirizzo mostrato nella finestra nera
+    (di solito http://127.0.0.1:8080).
+
+  - Il browser dice "Impossibile raggiungere il sito":
+    la finestra nera è stata chiusa. Rifai doppio clic su "Avvia Cockpit".
+
+  - Vuoi ricominciare la demo da zero:
+    chiudi la finestra nera, poi doppio clic su "Ripristina dati demo"
+    e segui le indicazioni. Una copia dei dati precedenti viene conservata.
+
+  - Non funziona ancora: invia a chi ti ha dato la demo il file
+    sistema\data\demo\logs\cockpit.log
+
+
+NOTE
+
+  - Non spostare, rinominare o cancellare la cartella "sistema".
+  - È una demo: i dati sono dimostrativi e restano solo su questo computer.
+    Non serve Internet.
+  - Richiede Windows 10 o 11.

@@ -1,0 +1,43 @@
+name: windows-portable
+
+# Costruisce lo zip portatile della demo, lo avvia su Windows e lo pubblica come artifact scaricabile.
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install uv
+      - run: python scripts/build_windows_portable.py
+      - name: Smoke test dello zip
+        shell: pwsh
+        run: |
+          $zip = Get-ChildItem dist\*.zip | Select-Object -First 1
+          $target = Join-Path $env:RUNNER_TEMP "demo"
+          Expand-Archive -LiteralPath $zip.FullName -DestinationPath $target
+          $package = Join-Path $target "Brofind Cockpit Demo"
+          Start-Process -FilePath (Join-Path $package "Avvia Cockpit.bat") -WorkingDirectory $package
+          $deadline = (Get-Date).AddSeconds(180)
+          while ((Get-Date) -lt $deadline) {
+            try {
+              $health = Invoke-RestMethod http://127.0.0.1:8080/health -TimeoutSec 2
+              if ($health.status -eq "ok" -and $health.runtime -eq "demo") { break }
+            } catch { Start-Sleep -Seconds 2 }
+          }
+          if (-not $health) {
+            Get-Content (Join-Path $package "sistema\data\demo\logs\cockpit.log") -ErrorAction SilentlyContinue
+            throw "Il Cockpit portatile non ha risposto su /health."
+          }
+          $health | Format-List
+          (Invoke-WebRequest http://127.0.0.1:8080/ -UseBasicParsing).StatusCode
+      - uses: actions/upload-artifact@v4
+        with:
+          name: brofind-cockpit-demo-windows
+          path: dist/*.zip

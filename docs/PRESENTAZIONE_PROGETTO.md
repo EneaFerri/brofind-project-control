@@ -1,6 +1,6 @@
 # Brofind Control Cockpit — presentazione del progetto
 
-**Documento di presentazione della bozza** · ottobre 2026 · versione demo v1.0.1
+**Documento di presentazione della bozza** · ottobre 2026 · versione demo v1.0.0
 
 > Le cifre di costo e le tempistiche sono **stime indicative** per orientare la decisione, da confermare con IT, fornitori e Amministrazione. I dati mostrati nella demo sono fittizi o anonimizzati.
 

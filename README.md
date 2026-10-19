@@ -28,7 +28,7 @@ Requisito: **Python 3.13, 3.14 o 3.15**.
 Al primo avvio viene creata la `.venv` e installate le dipendenze; poi il Cockpit è disponibile su <http://127.0.0.1:8080> (controllo: `/health`).
 Dettagli su runtime, database e backup: [`docs/DEMO_RUNTIME.md`](docs/DEMO_RUNTIME.md). Percorso guidato del caso demo: [`docs/DEMO_B1_RUNBOOK.md`](docs/DEMO_B1_RUNBOOK.md).
 
-> Se la `.venv` è stata creata con una versione precedente del progetto, rimuoverla e rilanciare lo script: le dipendenze sono cambiate (aggiunto `alembic`; da v1.0.1 rimossi `pandas` e `pyyaml`).
+> Se la `.venv` è stata creata con una versione precedente del progetto, rimuoverla e rilanciare lo script: le dipendenze sono cambiate (aggiunto `alembic`; da v1.0.0 rimossi `pandas` e `pyyaml`).
 
 ## Sviluppo
 
